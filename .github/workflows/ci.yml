@@ -128,6 +128,6 @@ jobs:
           OUT_DIR: ${{ runner.temp }}/w16-out
         run: |
           for exe in MSGBOX HELLO SETUP; do
-            file "$OUT_DIR/$exe.EXE" | tee /dev/stderr | grep -q 'NE version'
+            file "$OUT_DIR/$exe.EXE" | tee /dev/stderr | grep -Eq 'NE (version [0-9]+ )?for MS Windows'
             python3 tools/ne_dump.py "$OUT_DIR/$exe.EXE" >/dev/null
           done

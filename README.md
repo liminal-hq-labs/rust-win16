@@ -35,7 +35,7 @@ No Docker image is required. The spike this was cut from used the local toolchai
 # Build msgbox, hello and setup into out/ (keep the Cargo output outside the tree if you like)
 CARGO_TARGET_DIR=/tmp/w16-target bash scripts/build.sh
 
-file out/MSGBOX.EXE        # MS-DOS executable, NE version 5 for MS Windows 3.10 (EXE) (GUI)
+file out/MSGBOX.EXE        # MS-DOS executable, NE for MS Windows 3.x (3.10) (EXE), worded by your version of `file`
 python3 tools/ne_dump.py out/MSGBOX.EXE
 wine out/MSGBOX.EXE
 ```
