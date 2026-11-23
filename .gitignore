@@ -19,3 +19,6 @@ __pycache__/
 *.swp
 .vscode/
 .idea/
+
+# Win16 build output
+/out/

@@ -1,0 +1,76 @@
+# Win16 imports the runtime can call, one per line: MODULE ORDINAL Name ARGS RET
+#
+# (c) Copyright 2026 Liminal HQ, Scott Morris
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+#
+# Ordinals and Pascal signatures come from Wine's krnl386.exe16.spec, user.exe16.spec and gdi.exe16.spec.
+# ARGS has one letter per Rust argument, in Pascal (left to right) order:
+#   w  a 16-bit word (the low 16 bits of the argument)
+#   l  a 32-bit long, or a far pointer already made as selector:offset
+#   p  a near pointer into the data segment, pushed as DS:offset
+#   f  a near pointer into the code segment, pushed as CS:offset
+# RET is w (AX, zero-extended), l (DX:AX) or v (nothing).
+KERNEL 3 GetVersion - l
+KERNEL 15 GlobalAlloc wl w
+KERNEL 17 GlobalFree w w
+KERNEL 18 GlobalLock w l
+KERNEL 19 GlobalUnlock w w
+KERNEL 29 Yield - v
+KERNEL 30 WaitEvent w w
+KERNEL 49 GetModuleFileName wpw w
+KERNEL 60 FindResource wll w
+KERNEL 61 LoadResource ww w
+KERNEL 62 LockResource w l
+KERNEL 63 FreeResource w w
+KERNEL 65 SizeofResource ww l
+KERNEL 74 OpenFile ppw w
+KERNEL 81 _lclose w w
+KERNEL 82 _lread wlw w
+KERNEL 83 _lcreat pw w
+KERNEL 84 _llseek wlw l
+KERNEL 85 _lopen pw w
+KERNEL 86 _lwrite wpw w
+KERNEL 86 _lwrite_far wlw w
+KERNEL 115 OutputDebugString p v
+KERNEL 128 GetPrivateProfileString ppppwp w
+KERNEL 129 WritePrivateProfileString pppp w
+KERNEL 107 SetErrorMode w w
+KERNEL 132 GetWinFlags - l
+USER 1 MessageBox wppw w
+USER 5 InitApp w w
+USER 6 PostQuitMessage w v
+USER 22 SetFocus w w
+USER 33 GetClientRect wp v
+USER 34 EnableWindow ww w
+USER 37 SetWindowText wp v
+USER 39 BeginPaint wp w
+USER 40 EndPaint wp v
+USER 41 CreateWindow pplwwwwwwwl w
+USER 42 ShowWindow ww w
+USER 53 DestroyWindow w w
+USER 57 RegisterClass p w
+USER 66 GetDC w w
+USER 68 ReleaseDC ww w
+USER 87 DialogBox wlwf w
+USER 88 EndDialog ww v
+USER 89 CreateDialog wlwf w
+USER 90 IsDialogMessage wp w
+USER 91 GetDlgItem ww w
+USER 92 SetDlgItemText wwp v
+USER 93 GetDlgItemText wwpw w
+USER 107 DefWindowProc wwwl l
+USER 108 GetMessage pwww w
+USER 109 PeekMessage pwwww w
+USER 110 PostMessage wwwl w
+USER 111 SendMessage wwwl l
+USER 113 TranslateMessage p w
+USER 114 DispatchMessage p l
+USER 124 UpdateWindow w v
+USER 125 InvalidateRect wpw v
+USER 173 LoadCursor wl w
+USER 174 LoadIcon wl w
+USER 176 LoadString wwpw w
+USER 179 GetSystemMetrics w w
+GDI 2 SetBkMode ww w
+GDI 33 TextOut wwwpw w
+GDI 87 GetStockObject w w

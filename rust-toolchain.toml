@@ -1,0 +1,8 @@
+# Pins the Rust toolchain. The build sets `RUSTC_BOOTSTRAP=1` for `-Zbuild-std` and the custom target.
+#
+# (c) Copyright 2026 Liminal HQ, Scott Morris
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+
+[toolchain]
+channel = "1.98.0"
+components = ["rustfmt", "clippy", "rust-src"]
