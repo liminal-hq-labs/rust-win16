@@ -1,0 +1,42 @@
+# Rust Win16: the runtime library and the example programs. Built for the custom `win16.json` target.
+#
+# (c) Copyright 2026 Liminal HQ, Scott Morris
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+
+# A workspace of its own: it needs `-Zbuild-std` and a custom target.
+[workspace]
+
+[package]
+name = "rust-win16"
+version = "0.0.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stubs"
+publish = false
+
+[lib]
+name = "w16"
+path = "src/lib.rs"
+
+[[bin]]
+name = "msgbox"
+path = "examples/msgbox/main.rs"
+
+[[bin]]
+name = "hello"
+path = "examples/hello/main.rs"
+
+[[bin]]
+name = "setup"
+path = "examples/setup/main.rs"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+debug = 0
+strip = false
+
+[profile.dev]
+panic = "abort"
