@@ -4,7 +4,7 @@ A summary of [AGENTS.md](AGENTS.md), which is canonical. Keep the two in sync.
 
 ## What this is
 
-{{PROJECT_TITLE}} is a Liminal HQ Labs experiment: {{PROJECT_DESCRIPTION}}. Experimental, so anything may change. Behaviour lives in `SPEC.md`, decisions in `docs/decisions.md`.
+Rust Win16 is a Liminal HQ Labs experiment: Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stubs. Experimental, so anything may change. Behaviour lives in `SPEC.md`, decisions in `docs/decisions.md`.
 
 ## Rules to remember
 

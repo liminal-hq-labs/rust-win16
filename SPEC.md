@@ -1,10 +1,10 @@
-# {{PROJECT_TITLE}} specification
+# Rust Win16 specification
 
 <!-- The source of truth for behaviour. A change that alters behaviour updates this file in the same change. Delete the guidance comments as sections fill in. -->
 
 ## Purpose
 
-{{PROJECT_DESCRIPTION}}.
+Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stubs.
 
 <!-- One paragraph: the problem, who has it and what this does about it. -->
 
