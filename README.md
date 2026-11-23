@@ -1,18 +1,14 @@
-# {{PROJECT_TITLE}}
+# Rust Win16
 
-<!-- template-note:start -->
-> **This is the Liminal HQ Labs project template.** Create a repository from it, then run `scripts/init-project.sh <name> "<one-line description>"` and follow [docs/new-project.md](docs/new-project.md). The script removes this note.
-<!-- template-note:end -->
-
-<p align="center"><img src="assets/hero.svg" alt="{{PROJECT_TITLE}} — {{PROJECT_DESCRIPTION}}" width="100%"></p>
+<p align="center"><img src="assets/hero.svg" alt="Rust Win16 — Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stubs" width="100%"></p>
 
 <p align="center">
-  <a href="https://github.com/liminal-hq-labs/{{PROJECT_NAME}}/actions/workflows/ci.yml"><img src="https://github.com/liminal-hq-labs/{{PROJECT_NAME}}/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="https://github.com/liminal-hq-labs/rust-win16/actions/workflows/ci.yml"><img src="https://github.com/liminal-hq-labs/rust-win16/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
   <img src="https://img.shields.io/badge/status-experimental-a3e635" alt="Status: experimental">
   <img src="https://img.shields.io/badge/licence-Apache--2.0%20OR%20MIT-3fb950" alt="Licence: Apache-2.0 OR MIT">
 </p>
 
-{{PROJECT_DESCRIPTION}}.
+Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stubs.
 
 <!-- Pitch: two or three sentences on what it does and why someone would want it. Plain words, no feature list. -->
 
@@ -44,7 +40,7 @@ Issues and pull requests are welcome. The house rules are in [AGENTS.md](AGENTS.
 
 ## Part of Liminal HQ Labs
 
-{{PROJECT_TITLE}} is a [Liminal HQ Labs](https://github.com/liminal-hq-labs) experiment. Experiments from Liminal HQ — early, rough and open. If it proves itself, it [graduates](https://github.com/liminal-hq-labs/.github/blob/main/docs/labs-charter.md#graduation) to [Liminal HQ](https://github.com/liminal-hq).
+Rust Win16 is a [Liminal HQ Labs](https://github.com/liminal-hq-labs) experiment. Experiments from Liminal HQ — early, rough and open. If it proves itself, it [graduates](https://github.com/liminal-hq-labs/.github/blob/main/docs/labs-charter.md#graduation) to [Liminal HQ](https://github.com/liminal-hq).
 
 ## Licence
 
