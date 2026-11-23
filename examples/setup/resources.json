@@ -1,0 +1,36 @@
+{
+	"dialogs": [
+		{
+			"id": 100,
+			"caption": "Rust Win16 Setup",
+			"x": 20, "y": 20, "cx": 200, "cy": 100,
+			"items": [
+				{ "class": "static", "id": 200, "text": "", "x": 14, "y": 14, "cx": 172, "cy": 56 },
+				{ "class": "button", "id": 1, "text": "&Next >", "x": 84, "y": 78, "cx": 50, "cy": 14, "style": ["defpushbutton", "tabstop"] },
+				{ "class": "button", "id": 2, "text": "Cancel", "x": 140, "y": 78, "cx": 50, "cy": 14, "style": ["tabstop"] }
+			]
+		},
+		{
+			"id": 101,
+			"caption": "Rust Win16 Setup",
+			"x": 30, "y": 30, "cx": 200, "cy": 80,
+			"style": ["popup", "caption", "modalframe", "setfont", "visible"],
+			"items": [
+				{ "class": "static", "id": 200, "text": "Copying files...", "x": 14, "y": 12, "cx": 172, "cy": 10 },
+				{ "class": "static", "id": 201, "text": "", "x": 14, "y": 28, "cx": 172, "cy": 10 },
+				{ "class": "button", "id": 2, "text": "Cancel", "x": 140, "y": 58, "cx": 50, "cy": 14, "style": ["tabstop"] }
+			]
+		}
+	],
+	"strings": {
+		"1": "Welcome to the Rust Win16 setup example. This program is Rust, built for a 16-bit code segment, and carries one file as a resource.",
+		"2": "Setup will copy HELLO.TXT to C:\\W16TEST and write an INI receipt. Click Install to continue.",
+		"3": "Setup is complete. HELLO.TXT is in C:\\W16TEST and the receipt is C:\\W16TEST\\INSTALL.INI. Click Finish.",
+		"4": "&Next >",
+		"5": "&Install",
+		"6": "&Finish"
+	},
+	"rcdata": [
+		{ "id": 1, "file": "payload/HELLO.TXT" }
+	]
+}

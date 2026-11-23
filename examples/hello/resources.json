@@ -1,0 +1,22 @@
+{
+	"dialogs": [
+		{
+			"id": 100,
+			"caption": "Rust Win16 hello",
+			"x": 20, "y": 20, "cx": 200, "cy": 100,
+			"items": [
+				{ "class": "static", "id": 200, "text": "", "x": 14, "y": 14, "cx": 172, "cy": 56 },
+				{ "class": "button", "id": 1, "text": "&Next >", "x": 84, "y": 78, "cx": 50, "cy": 14, "style": ["defpushbutton", "tabstop"] },
+				{ "class": "button", "id": 2, "text": "Cancel", "x": 140, "y": 78, "cx": 50, "cy": 14, "style": ["tabstop"] }
+			]
+		}
+	],
+	"strings": {
+		"1": "Welcome. This wizard is a native dialog resource driven by a three-page state machine written in Rust.",
+		"2": "Everything on this page is 16-bit code with 32-bit register operations. Click Next to continue.",
+		"3": "That is all. Click Finish to close the wizard and the window.",
+		"4": "&Next >",
+		"5": "&Next >",
+		"6": "&Finish"
+	}
+}
