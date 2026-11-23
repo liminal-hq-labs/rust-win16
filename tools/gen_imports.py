@@ -55,12 +55,19 @@ def stub(mod, ordinal, name, args, ret):
 		elif a == "f":
 			out.append("push cs")
 			out.append(f"push word ptr [bp+{off}]")
+	# Rust runs on a 32-bit alias of the stack segment (see `_start` in src/lib.rs); Windows gets the real 16-bit one. `mov ss` holds
+	# off interrupts until after the next instruction, so ESP is clean before anything can use it.
+	out.append("mov ss, word ptr [__w16_ss16]")
+	out.append("movzx esp, sp")
 	out.append(".byte 0x9a")
 	out.append(f".globl __w16imp_{mod}_{ordinal}_{name}")
 	out.append(f"__w16imp_{mod}_{ordinal}_{name}:")
 	out.append(".word 0, 0")
-	# Windows may leave the high half of ESP as it likes (Rust addresses the stack through ESP) and does not keep ES, which Rust's
-	# string instructions (`rep movs`, `rep stos`) take as the data segment.
+	# Windows may have moved the data segment: move the 32-bit alias with it (src/lib.rs). Then back to the 32-bit stack. Windows may leave the high half of ESP as it likes, and an interrupt taken on a 16-bit stack restores
+	# only SP, so ESP is rebuilt from SP. Windows does not keep ES, which Rust's string instructions (`rep movs`) take as the data segment.
+	out.append(".byte 0x66, 0xe8")
+	out.append(".long w16_sync_alias - . - 4")
+	out.append("mov ss, word ptr [__w16_ss32]")
 	out.append("movzx esp, sp")
 	out.append("push ds")
 	out.append("pop es")

@@ -10,9 +10,9 @@
 
 Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stubs.
 
-Rust `no_std` compiles for LLVM's `code16` mode, `rust-lld` links it, and a small Python packer rewraps the result as a Win16 NE executable. A 620-byte message box and a 15 KB wizard-style installer come out the other end, and they run on Windows for Workgroups 3.11, Windows ME and Wine.
+Rust `no_std` compiles for LLVM's `code16` mode, `rust-lld` links it, and a small Python packer places the code in 64 KB segments and writes a Win16 NE executable. A 948-byte message box, a 16 KB wizard-style installer and a 110 KB test program in five code segments come out the other end, and they run on Windows for Workgroups 3.11 and Wine (the first two on Windows ME too).
 
-> **Status:** experimental. The examples build and run on Wine, Windows for Workgroups 3.11 (386 Enhanced mode, under DOSBox-X) and Windows ME. It has not been tried on real hardware, and the toolchain is an unsupported use of LLVM held together by a pinned compiler and our own packer.
+> **Status:** experimental. The examples build and run on Wine and Windows for Workgroups 3.11 (386 Enhanced mode, under DOSBox-X); the multi-segment example passed 40 of 40 runs there. Windows ME has run the single-segment examples. It has not been tried on real hardware, and the toolchain is an unsupported use of LLVM held together by a pinned compiler and our own packer.
 
 ## What it's for
 
@@ -60,22 +60,25 @@ To add a program, add a `[[bin]]` to `Cargo.toml`, add its name to the loop in `
 
 | Example | What it shows |
 |---|---|
-| `msgbox` | One `MessageBox`: the smallest program, 620 bytes |
+| `msgbox` | One `MessageBox`: the smallest program, 948 bytes |
 | `hello` | A window class, a message loop, painting, and a native three-page wizard dialog driven by a state machine |
 | `setup` | A wizard, a modeless progress dialog with a message pump, a bundled file read from a resource and copied to `C:\W16TEST`, an INI receipt and a result log |
+| `bigseg` | 88 KB of code in five segments: calls, tail calls, function pointers, `dyn` and a jump table across all of them, a discardable segment thrown out and called again, each result checked against a second implementation; `BIGSEG /exit` writes `BIGSEG.LOG` and ends Windows |
 
 ## How the packer works
 
-`tools/ne_pack.py` takes the linked ELF and writes the NE file Windows loads: the DOS stub, the NE header, one fixed code segment, one automatic data segment with its stack and heap, one relocation record per imported API, the entry table, the name tables and the resource table. It rearranges bytes the linker already resolved; it does not link. [docs/packer.md](docs/packer.md) walks through each piece.
+`tools/ne_pack.py` takes the linked ELF and writes the NE file Windows loads: the DOS stub, the NE header, the code segments, one automatic data segment with its stack and heap, the relocation records, the entry table, the name tables and the resource table. The linker leaves every function in a section of its own with its relocations; the packer places them in segments (automatically, by a `.text.seg<N>` section name or by Rust path patterns in a small JSON file), recomputes every reference to code and sends calls between segments through veneers with far fixups. [docs/packer.md](docs/packer.md) walks through each piece.
 
 ## Limits
 
 - **A 386 or later.** Rust on `code16` leans on 32-bit registers through operand-size and address-size prefixes, so the programs need Windows 3.x in 386 Enhanced mode. Standard mode on a 286 is unsupported and is expected to fail with invalid opcodes.
-- **64 KB segments.** One code segment and one data segment (DS = SS), with the stack and heap counted in the data limit. The packer rejects anything larger and does not split code.
+- **64 KB segments.** Code may fill up to 253 segments of 64 KB each (the veneers and the slot table count); a single function must fit in one, and the file in 1 MB. Data is one segment (DS = SS) of 64 KB with the stack, the heap and a 1 KB shadow return stack counted in it.
+- **Calls through function pointers or tail calls into another segment** use a shadow return stack, 256 levels deep by default (`--shadow`); direct calls have no such limit. Exported procedures and import stubs live in segment 1.
+- **DPMI.** Rust runs on a 32-bit alias of the stack segment that the program makes through DPMI (see pitfall 7).
 - **Untested on real hardware.** Wine, DOSBox-X running a real Windows for Workgroups 3.11, and Windows ME in a virtual machine have run the examples. Windows 3.0 and a physical 286 or 386 have not.
 - **No allocator and no `core::fmt`.** The `alloc` crate builds, but nothing provides a global allocator, and formatting would cost tens of kilobytes of code.
 - **A small API surface.** 64 imports from KERNEL, USER and GDI. Add more to `tools/imports.tbl` and regenerate.
-- **Not done:** multi-segment code, icons, DDE (so no Program Manager groups), and more than one instance of a program.
+- **Not done:** icons, DDE (so no Program Manager groups), DLLs, and more than one instance of a program.
 
 ## Testing
 
@@ -87,10 +90,10 @@ bash scripts/check-headers.sh
 To run the executables:
 
 - **Wine.** `wine out/SETUP.EXE` runs the whole flow. Wine keeps the high halves of the 32-bit registers intact and tolerates a few loader mistakes real Windows rejects, so a pass on Wine is a good smoke test, not proof.
-- **DOSBox-X with Windows for Workgroups 3.11.** Install Windows 3.11 yourself (this repository ships no Microsoft files), mount the tree as `C:` and a scratch directory as `D:`, and start `WIN /3`. The spike used `machine=svga_s3`, `cputype=pentium`, `ems=false`, put `run=D:\SETUP.EXE` in `WIN.INI` and drove the dialogs from the keyboard, since mouse input was unreliable. `SETUP` writes its log to `C:\W16TEST\RESULT.LOG` and `D:\RESULT.TXT`; the last line reads `RESULT: PASS` when it worked.
+- **DOSBox-X with Windows for Workgroups 3.11.** Install Windows 3.11 yourself (this repository ships no Microsoft files). `W31_TREE=DIR DOSBOX_IMAGE=IMAGE bash scripts/run-w31.sh --runs 30 out/BIGSEG.EXE /exit` runs a program on a fresh copy of the tree as many times as you ask and counts the passes. By hand: mount the tree as `C:` and a scratch directory as `D:`, and start `WIN /3`. The spike used `machine=svga_s3`, `cputype=pentium`, `ems=false`, put `run=D:\SETUP.EXE` in `WIN.INI` and drove the dialogs from the keyboard, since mouse input was unreliable. `SETUP` writes its log to `C:\W16TEST\RESULT.LOG` and `D:\RESULT.TXT`; the last line reads `RESULT: PASS` when it worked.
 - **Windows ME or 9x** in a virtual machine runs Win16 programs too, and reports a 3.95 version to them.
 
-## The six register and loader pitfalls
+## The seven register and loader pitfalls
 
 Each of these worked on Wine or looked right on paper, and failed on a real Windows 3.11:
 
@@ -99,7 +102,8 @@ Each of these worked on Wine or looked right on paper, and failed on a real Wind
 3. **INITTASK must run first.** It reads registers the loader set up. Any instruction before it, such as widening `sp` into `esp`, changes what it sees and the task dies.
 4. **Resource lengths are in alignment units.** A resource table entry's length is shifted by the alignment, so a file that is a few bytes short makes a dialog silently fail to open. Pad the data and carry the exact length inside it.
 5. **ES is not preserved.** Windows does not keep ES across a call, and Rust's `rep movs` uses it, so a later copy faults with a general protection fault. Reload ES from DS after every call.
-6. **BX, and the high half of ESP, are not preserved.** A Pascal callee only owes SI, DI, BP and DS, and Windows also replaced EBX and, after yielding calls, left a non-zero high half in ESP. Save EBX, ESI and EDI around every API call, and clear the high half of ESP afterwards. Raw INT 21h clobbers registers the compiler believed safe, so inline assembly saves them too.
+6. **BX, and the high half of ESP, are not preserved.** A Pascal callee only owes SI, DI, BP and DS, and Windows also replaced EBX and, after yielding calls, left a non-zero high half in ESP. Save EBX, ESI, EDI and EBP around every API call, and clear the high half of ESP afterwards. Raw INT 21h clobbers registers the compiler believed safe, so inline assembly saves them too.
+7. **Interrupts dirty ESP between any two instructions.** An interrupt that returns to a 16-bit stack segment restores only SP, so on Windows 3.11 the high half of ESP turns `8001` at timer ticks, about 20 times a second, and code16 addresses the stack through all of ESP. Rust runs on a 32-bit alias of the stack segment, which gets all of ESP back; the stubs move to the real 16-bit stack for each call into Windows and follow the data segment when Windows moves it.
 
 The generated stubs and `export_proc!` do all of this for you. [docs/decisions.md](docs/decisions.md) records why.
 

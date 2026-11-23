@@ -12,4 +12,11 @@ build-std-features = ["compiler-builtins-mem"]
 json-target-spec = true
 
 [target.win16]
-rustflags = ["-C", "link-arg=-Tlink.ld", "-C", "link-arg=--no-dynamic-linker"]
+# `--unique`, `--emit-relocs` and `--noinhibit-exec` leave each code section apart with its relocations for tools/ne_pack.py (see link.ld).
+rustflags = [
+	"-C", "link-arg=-Tlink.ld",
+	"-C", "link-arg=--no-dynamic-linker",
+	"-C", "link-arg=--unique",
+	"-C", "link-arg=--emit-relocs",
+	"-C", "link-arg=--noinhibit-exec",
+]

@@ -30,6 +30,10 @@ path = "examples/hello/main.rs"
 name = "setup"
 path = "examples/setup/main.rs"
 
+[[bin]]
+name = "bigseg"
+path = "examples/bigseg/main.rs"
+
 [profile.release]
 opt-level = "z"
 lto = true

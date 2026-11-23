@@ -91,17 +91,19 @@ Use `#` comments for shell, YAML, TOML and Dockerfiles, and an XML comment for S
 
 ## Architecture rules
 
-- **Registers first.** Windows does not keep BX, ES or the high half of ESP. Every call into Windows goes through a generated stub, and every exported procedure through `export_proc!`; neither may lose the save and restore of EBX, ESI and EDI, the clearing of the high half of ESP or the reload of ES.
+- **Registers first.** Windows does not keep BX, ES or the high half of ESP, and an interrupt that returns to a 16-bit stack dirties ESP's high half at any instruction. Rust runs on a 32-bit alias of the stack segment and Windows never does. Every call into Windows goes through a generated stub, and every exported procedure through `export_proc!`; neither may lose the save and restore of EBX, ESI, EDI and EBP, the switch between the two stacks (with `movzx esp, sp` straight after each `mov ss`), the alias sync or the reload of ES. Inline assembly that calls DOS or Windows directly switches stacks the same way.
 - **INITTASK is first.** `_start` runs INITTASK before any other instruction.
-- **Stay in the limits.** One code segment and one data segment, 64 KB each. The packer rejects more; do not work around it without adding multi-segment support to the packer, its tests and `SPEC.md`.
-- **Test against a second reader.** A packer change comes with a test that checks the result with `tools/ne_dump.py`, and a change to a register rule is checked on real Windows or says plainly that it was not.
+- **Stay in the limits.** Code in up to 253 segments of 64 KB, one data segment of 64 KB. Exported procedures, import stubs and `.text.w16fixed*` helpers live in segment 1. Every far entry into a load-on-call or discardable segment goes through the gate; do not add a far jump that bypasses it.
+- **Test against a second reader.** A packer change comes with a test that checks the result with `tools/ne_dump.py` (and `tools/ne_check.py` for code it rewrites), and a change to a register or stack rule is checked on Windows 3.11 (`scripts/run-w31.sh`, many runs) or says plainly that it was not.
 - **No Microsoft files.** Nothing from a Windows install goes in the repository.
 - **SPEC first.** A change to behaviour, interfaces, settings or defaults updates `SPEC.md` in the same change.
 
 ## Testing
 
 - `bash scripts/check-headers.sh` — SPDX headers
-- `python3 -m unittest discover -s tests -v` — packer and stub generator
+- `python3 -m unittest discover -s tests -v` — packer, segments and stub generator
+- `python3 tools/ne_check.py out/BIGSEG.EXE` — decode the packed code (needs `objdump`)
+- `W31_TREE=DIR DOSBOX_IMAGE=IMAGE bash scripts/run-w31.sh --runs 30 out/BIGSEG.EXE /exit` — Windows 3.11 under DOSBox-X, local only
 - `CARGO_TARGET_DIR=/tmp/w16-target OUT_DIR=/tmp/w16-out bash scripts/build.sh`, then `file` on the output (expect `NE`) — the examples build and pack
 - `cargo fmt --all -- --check` — Rust formatting
 - `bash scripts/check-banner.sh` — hero banner rules and text fit (needs `xmllint`, `rsvg-convert`, `python3` and Chromium; `--shots DIR` writes frames to look at)
@@ -124,11 +126,11 @@ README.md SPEC.md AGENTS.md CLAUDE.md LICENSE-APACHE LICENSE-MIT
 .editorconfig .markdownlint.jsonc .gitignore rustfmt.toml rust-toolchain.toml
 Cargo.toml Cargo.lock win16.json link.ld .cargo/config.toml
 src/           runtime crate: lib.rs, generated imports.rs, wizard.rs, probe.rs
-examples/      msgbox, hello and setup, each with its resources
-tools/         ne_pack.py, ne_dump.py, gen_imports.py and imports.tbl
-tests/         packer and stub generator tests
+examples/      msgbox, hello, setup and bigseg, each with its resources or segments file
+tools/         ne_pack.py, ne_dump.py, ne_check.py, ne_addr2sym.py, rust_demangle.py, gen_imports.py and imports.tbl
+tests/         packer, segment and stub generator tests
 assets/        hero banner
 docs/          packer explainer and decisions
-scripts/       build, header check, banner check and its Chromium text-fit harness
+scripts/       build, Windows 3.11 harness, header check, banner check and its Chromium text-fit harness
 .github/       CI workflow, issue and pull request templates, release notes configuration
 ```

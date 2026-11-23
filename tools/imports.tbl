@@ -15,8 +15,10 @@ KERNEL 15 GlobalAlloc wl w
 KERNEL 17 GlobalFree w w
 KERNEL 18 GlobalLock w l
 KERNEL 19 GlobalUnlock w w
+KERNEL 25 GlobalCompact l l
 KERNEL 29 Yield - v
 KERNEL 30 WaitEvent w w
+KERNEL 37 GetCurrentPDB - w
 KERNEL 49 GetModuleFileName wpw w
 KERNEL 60 FindResource wll w
 KERNEL 61 LoadResource ww w
@@ -39,6 +41,7 @@ KERNEL 132 GetWinFlags - l
 USER 1 MessageBox wppw w
 USER 5 InitApp w w
 USER 6 PostQuitMessage w v
+USER 7 ExitWindows lw w
 USER 22 SetFocus w w
 USER 33 GetClientRect wp v
 USER 34 EnableWindow ww w
