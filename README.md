@@ -4,8 +4,8 @@
 
 <p align="center">
   <a href="https://github.com/liminal-hq-labs/rust-win16/actions/workflows/ci.yml"><img src="https://github.com/liminal-hq-labs/rust-win16/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
-  <img src="https://img.shields.io/badge/status-experimental-a3e635" alt="Status: experimental">
-  <img src="https://img.shields.io/badge/licence-Apache--2.0%20OR%20MIT-3fb950" alt="Licence: Apache-2.0 OR MIT">
+  <img src="https://img.shields.io/badge/status-experimental-e0591f" alt="Status: experimental">
+  <img src="https://img.shields.io/badge/licence-Apache--2.0%20OR%20MIT-008080" alt="Licence: Apache-2.0 OR MIT">
 </p>
 
 Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stubs.
