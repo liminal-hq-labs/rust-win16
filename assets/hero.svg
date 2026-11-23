@@ -1,33 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-	Rust Win16 hero banner: the Liminal HQ Labs placeholder, a small flask bubbling on a bench.
+	Rust Win16 hero banner: Rust source goes through code16, rust-lld and the NE packer, and comes out as a tiny .EXE that opens a Windows 3.1 message box.
 
 	(c) Copyright 2026 Liminal HQ, Scott Morris
 	SPDX-License-Identifier: Apache-2.0 OR MIT
 
-	How to edit: scripts/init-project.sh fills in the title and description. Keep the title under
-	about 16 characters and the description under about 60, or shrink their font-size. Replace the
-	flask with a scene for the project when it has one: keep the 1200 x 320 viewBox, SMIL only, the
-	.motion and .static pairs for reduced motion, data-loop on the root and animations whose dur
-	divides it. For a final wordmark, outline the title with Inkscape (export text to path) and
-	keep the paths. Check every change with scripts/check-banner.sh and its shots option, and look
-	at the frames (docs/new-project.md has the commands).
+	Palette (Windows 3.1, with one Rust accent; README badges reuse Rust and Desktop teal):
+	  Desktop teal  #008080   the miniature desktop, the licence badge, the page wash (darker in the banner background)
+	  Silver        #C0C0C0   window faces, buttons and the status bar
+	  Shadow grey   #808080   bevel shadows
+	  Navy          #000080   title bars and the message box icon
+	  White         #FFFFFF   bevel highlights, text on the teal and navy
+	  Black         #000000   window outlines and text on silver
+	  Rust          #E0591F   the one warm accent: keywords, the packet, the gear, the status badge
+
+	Scene: a source window feeds three stage buttons; a Rust packet crosses them in turn, a tiny
+	WIN16.EXE appears, and a message box opens. Curtains in the desktop teal hide the end of the
+	pipeline until the packet arrives, so the reduced-motion view shows the finished desktop. Keep
+	the 1200 x 320 viewBox, SMIL only, the .motion and .static pairs for reduced motion, data-loop
+	on the root and animations whose dur divides it. Check every change with
+	scripts/check-banner.sh and its shots option, and look at the frames.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="hero-title hero-desc" data-loop="9">
 	<title id="hero-title">Rust Win16</title>
-	<desc id="hero-desc">Rust Win16: Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stubs. A Liminal HQ Labs experiment. An animated banner shows a flask of glowing lime liquid bubbling on a lab bench.</desc>
+	<desc id="hero-desc">Rust Win16: Windows 3.x programs in Rust, packed as tiny NE .EXE files. A Liminal HQ Labs experiment. An animated banner shows a Windows 3.1 style teal desktop where a Rust source window feeds the code16, rust-lld and NE pack stages, a small orange gear turns, and a tiny WIN16.EXE opens a Hello message box.</desc>
 
 	<style>
 		.ui { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Adwaita Sans', Inter, sans-serif; }
 		.mono { font-family: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace; }
-		.bg-a { stop-color: #0c0e16; }
-		.bg-b { stop-color: #161a28; }
-		.edge { fill: none; stroke: #2a3040; }
+		.bg-a { stop-color: #00605f; }
+		.bg-b { stop-color: #00403f; }
+		.edge { fill: none; stroke: #0a8f8f; }
 		.static { display: none; }
 		@media (prefers-color-scheme: dark) {
-			.bg-a { stop-color: #050507; }
-			.bg-b { stop-color: #0e1019; }
-			.edge { stroke: #1d212c; }
+			.bg-a { stop-color: #00302f; }
+			.bg-b { stop-color: #001a1b; }
+			.edge { stroke: #004a4a; }
 		}
 		@media (prefers-reduced-motion: reduce) {
 			.motion { display: none; }
@@ -40,79 +48,179 @@
 			<stop class="bg-a" offset="0"/>
 			<stop class="bg-b" offset="1"/>
 		</linearGradient>
-		<linearGradient id="afterglow" x1="0" y1="0" x2="1" y2="0">
-			<stop offset="0" stop-color="#ffffff"/>
-			<stop offset="0.55" stop-color="#ffaa40"/>
-			<stop offset="1" stop-color="#f43f5e"/>
-		</linearGradient>
-		<linearGradient id="liquid" x1="0" y1="0" x2="0" y2="1">
-			<stop offset="0" stop-color="#bef264"/>
-			<stop offset="0.25" stop-color="#a3e635"/>
-			<stop offset="1" stop-color="#4ade80"/>
-		</linearGradient>
-		<radialGradient id="wash">
-			<stop offset="0" stop-color="#a78bfa" stop-opacity="0.16"/>
-			<stop offset="1" stop-color="#a78bfa" stop-opacity="0"/>
-		</radialGradient>
-		<filter id="haze" x="-60%" y="-60%" width="220%" height="220%">
-			<feGaussianBlur stdDeviation="20"/>
-		</filter>
+		<g id="gear">
+			<circle cx="836" cy="214" r="20" fill="none" stroke="#e0591f" stroke-width="7" stroke-dasharray="5.24 5.23"/>
+			<circle cx="836" cy="214" r="17" fill="#e0591f"/>
+			<circle cx="836" cy="214" r="7" fill="#008080"/>
+		</g>
 		<clipPath id="frame"><rect width="1200" height="320" rx="18"/></clipPath>
-		<clipPath id="flask-in"><path d="M966 104V156L916 236Q910 248 924 248H1036Q1050 248 1044 236L994 156V104Z"/></clipPath>
 	</defs>
 
 	<g clip-path="url(#frame)">
 		<rect data-bg="" width="1200" height="320" fill="url(#bg)"/>
-		<circle cx="70" cy="330" r="260" fill="url(#wash)"/>
 
 		<!-- Left: title, description, status chip -->
 		<!-- hero-text:start (system font; outline it for the final wordmark) -->
-		<text class="ui" x="56" y="128" font-size="60" font-weight="800" letter-spacing="-1" fill="url(#afterglow)">Rust Win16</text>
+		<text class="ui" x="56" y="128" font-size="60" font-weight="800" letter-spacing="-1" fill="#ffffff">Rust <tspan fill="#ff7a3d">Win16</tspan></text>
 		<!-- hero-text:end -->
-		<text class="ui" x="56" y="172" font-size="18" font-weight="500" fill="#e0e0e0">Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stubs</text>
-		<g class="ui" font-size="13" font-weight="600" fill="#b4bfce">
-			<rect id="chip-status" data-box="" x="56" y="200" width="134" height="28" rx="14" fill="#a3e635" fill-opacity="0.08" stroke="#a3e635" stroke-opacity="0.45"/>
-			<circle class="motion" cx="74" cy="214" r="4" fill="#a3e635">
+		<text class="ui" x="56" y="172" font-size="16" font-weight="500" fill="#e6f2f2">Windows 3.x programs in Rust, packed as tiny NE .EXE files</text>
+		<g class="ui" font-size="13" font-weight="600" fill="#e6f2f2">
+			<rect id="chip-status" data-box="" x="56" y="200" width="134" height="28" rx="14" fill="#e0591f" fill-opacity="0.14" stroke="#ff7a3d" stroke-opacity="0.7"/>
+			<circle class="motion" cx="74" cy="214" r="4" fill="#ff7a3d">
 				<animate attributeName="opacity" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.45 0 0.55 1;0.45 0 0.55 1" values="1;0.35;1"/>
 			</circle>
-			<circle class="static" cx="74" cy="214" r="4" fill="#a3e635"/>
+			<circle class="static" cx="74" cy="214" r="4" fill="#ff7a3d"/>
 			<text data-for="chip-status" x="86" y="219">experimental</text>
 		</g>
-		<text class="mono" x="56" y="266" font-size="12" fill="#8a96aa">Liminal HQ Labs</text>
+		<text class="mono" x="56" y="266" font-size="12" fill="#b8d8d8">Liminal HQ Labs</text>
 
-		<!-- Right: a flask bubbling on the bench -->
-		<rect x="860" y="257" width="300" height="2" fill="#b4bfce" opacity="0.35"/>
+		<!-- Right: the miniature desktop -->
+		<rect x="586" y="36" width="574" height="248" fill="#008080" stroke="#000000" stroke-width="2"/>
+
+		<!-- Source window -->
+		<rect x="602" y="64" width="112" height="116" fill="#000000" opacity="0.35"/>
+		<rect x="598" y="60" width="112" height="116" fill="#c0c0c0" stroke="#000000"/>
+		<rect x="599" y="61" width="110" height="16" fill="#000080"/>
+		<text class="mono" x="605" y="73" font-size="10" font-weight="700" fill="#ffffff">MAIN.RS</text>
+		<rect x="599" y="77" width="110" height="98" fill="#ffffff"/>
+		<g fill="#e0591f">
+			<rect x="608" y="86" width="26" height="5"/>
+			<rect x="608" y="122" width="22" height="5"/>
+			<rect x="608" y="146" width="14" height="5"/>
+		</g>
+		<g fill="#000080">
+			<rect x="660" y="98" width="30" height="5"/>
+			<rect x="616" y="134" width="30" height="5"/>
+		</g>
+		<g fill="#808080">
+			<rect x="638" y="86" width="50" height="5"/>
+			<rect x="616" y="98" width="40" height="5"/>
+			<rect x="616" y="110" width="56" height="5"/>
+			<rect x="634" y="122" width="40" height="5"/>
+			<rect x="650" y="134" width="34" height="5"/>
+			<rect x="626" y="146" width="20" height="5"/>
+		</g>
+		<rect class="motion" x="652" y="144" width="6" height="9" fill="#000000">
+			<animate attributeName="opacity" dur="1.5s" repeatCount="indefinite" calcMode="discrete" keyTimes="0;0.5;1" values="1;0;1"/>
+		</rect>
+		<rect class="static" x="652" y="144" width="6" height="9" fill="#000000"/>
+
+		<!-- Arrows -->
+		<g fill="#ffffff">
+			<path d="M712 114L720 120L712 126Z"/>
+			<path d="M788 114L796 120L788 126Z"/>
+			<path d="M864 114L872 120L864 126Z"/>
+			<path d="M940 114L948 120L940 126Z"/>
+			<path d="M992 114L1000 120L992 126Z"/>
+		</g>
+
+		<!-- Pipeline stages: code16 target, rust-lld, NE packer -->
+		<g stroke="#000000">
+			<rect x="722" y="100" width="64" height="40" fill="#c0c0c0"/>
+			<rect x="798" y="100" width="64" height="40" fill="#c0c0c0"/>
+			<rect x="874" y="100" width="64" height="40" fill="#c0c0c0"/>
+		</g>
+		<g fill="none" stroke-linecap="square">
+			<path d="M723 139V101H785" stroke="#ffffff" stroke-width="2"/>
+			<path d="M799 139V101H861" stroke="#ffffff" stroke-width="2"/>
+			<path d="M875 139V101H937" stroke="#ffffff" stroke-width="2"/>
+			<path d="M723 139H785V101" stroke="#808080" stroke-width="2"/>
+			<path d="M799 139H861V101" stroke="#808080" stroke-width="2"/>
+			<path d="M875 139H937V101" stroke="#808080" stroke-width="2"/>
+		</g>
+		<g class="motion" fill="#e0591f">
+			<rect x="723" y="101" width="62" height="38">
+				<animate attributeName="opacity" dur="9s" repeatCount="indefinite" keyTimes="0;0.08;0.1;0.2;0.22;1" values="0;0;0.7;0.7;0;0"/>
+			</rect>
+			<rect x="799" y="101" width="62" height="38">
+				<animate attributeName="opacity" dur="9s" repeatCount="indefinite" keyTimes="0;0.23;0.25;0.36;0.38;1" values="0;0;0.7;0.7;0;0"/>
+			</rect>
+			<rect x="875" y="101" width="62" height="38">
+				<animate attributeName="opacity" dur="9s" repeatCount="indefinite" keyTimes="0;0.39;0.41;0.52;0.54;1" values="0;0;0.7;0.7;0;0"/>
+			</rect>
+		</g>
+		<g class="mono" font-size="10" font-weight="700" fill="#000000" text-anchor="middle">
+			<rect id="stage-1" data-box="" x="722" y="100" width="64" height="40" fill="none"/>
+			<text data-for="stage-1" x="754" y="124">code16</text>
+			<rect id="stage-2" data-box="" x="798" y="100" width="64" height="40" fill="none"/>
+			<text data-for="stage-2" x="830" y="124">rust-lld</text>
+			<rect id="stage-3" data-box="" x="874" y="100" width="64" height="40" fill="none"/>
+			<text data-for="stage-3" x="906" y="124">NE pack</text>
+		</g>
+
+		<!-- The turning gear under the linker -->
+		<use class="motion" href="#gear">
+			<animateTransform data-cyclic="" attributeName="transform" type="rotate" dur="3s" repeatCount="indefinite" values="0 836 214;360 836 214"/>
+		</use>
+		<use class="static" href="#gear"/>
+
+		<!-- Tiny .EXE -->
+		<rect x="950" y="102" width="40" height="34" fill="#c0c0c0" stroke="#000000"/>
+		<rect x="951" y="103" width="38" height="8" fill="#000080"/>
+		<rect x="951" y="111" width="38" height="24" fill="#ffffff"/>
+		<rect x="958" y="118" width="14" height="4" fill="#e0591f"/>
+		<rect x="958" y="126" width="22" height="4" fill="#808080"/>
+		<text class="mono" x="970" y="154" font-size="9" font-weight="700" text-anchor="middle" fill="#ffffff">WIN16.EXE</text>
+
+		<!-- Message box -->
+		<rect x="1008" y="68" width="144" height="104" fill="#000000" opacity="0.35"/>
+		<rect x="1004" y="64" width="144" height="104" fill="#c0c0c0" stroke="#000000" stroke-width="2"/>
+		<rect x="1006" y="66" width="140" height="18" fill="#000080"/>
+		<text class="mono" x="1014" y="79" font-size="10" font-weight="700" fill="#ffffff">Win16</text>
+		<circle cx="1030" cy="108" r="12" fill="#000080" stroke="#ffffff" stroke-width="1.5"/>
+		<text class="ui" x="1030" y="114" font-size="16" font-weight="800" text-anchor="middle" fill="#ffffff">i</text>
+		<rect id="msg-text" data-box="" x="1044" y="90" width="104" height="38" fill="#c0c0c0"/>
+		<text data-for="msg-text" class="mono" x="1049" y="105" font-size="11" fill="#000000">Hello, Win16!</text>
+		<text data-for="msg-text" class="mono" x="1049" y="120" font-size="11" fill="#000000">Built in Rust.</text>
+		<rect id="msg-ok" data-box="" x="1052" y="136" width="48" height="22" fill="#c0c0c0" stroke="#000000" stroke-width="2"/>
+		<path d="M1054 156V138H1098" fill="none" stroke="#ffffff" stroke-width="2"/>
+		<path d="M1054 156H1098V138" fill="none" stroke="#808080" stroke-width="2"/>
+		<text data-for="msg-ok" class="mono" x="1076" y="151" font-size="11" font-weight="700" text-anchor="middle" fill="#000000">OK</text>
+
+		<!-- Curtains in desktop teal: the packet arrives, then the .EXE and the message box appear -->
+		<g class="motion" fill="#008080">
+			<rect x="940" y="90" width="62" height="80" opacity="1">
+				<animate attributeName="opacity" dur="9s" repeatCount="indefinite" keyTimes="0;0.54;0.58;0.94;1" values="1;1;0;0;1"/>
+			</rect>
+			<rect x="1002" y="56" width="152" height="126" opacity="1">
+				<animate attributeName="opacity" dur="9s" repeatCount="indefinite" keyTimes="0;0.62;0.68;0.94;1" values="1;1;0;0;1"/>
+			</rect>
+		</g>
+
+		<!-- The Rust packet crossing the pipeline -->
 		<g class="motion">
-			<ellipse cx="980" cy="212" rx="90" ry="56" fill="#4ade80" opacity="0.2" filter="url(#haze)">
-				<animate attributeName="opacity" dur="4.5s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.45 0 0.55 1;0.45 0 0.55 1" values="0.16;0.32;0.16"/>
-			</ellipse>
+			<rect x="706" y="146" width="10" height="10" fill="#e0591f" stroke="#ffffff" opacity="0">
+				<animate attributeName="x" dur="9s" repeatCount="indefinite" keyTimes="0;0.05;0.55;1" values="706;706;930;930"/>
+				<animate attributeName="opacity" dur="9s" repeatCount="indefinite" keyTimes="0;0.05;0.07;0.52;0.55;1" values="0;0;1;1;0;0"/>
+			</rect>
 		</g>
-		<ellipse class="static" cx="980" cy="212" rx="90" ry="56" fill="#4ade80" opacity="0.24" filter="url(#haze)"/>
-		<g clip-path="url(#flask-in)">
-			<path fill="url(#liquid)" d="M900 200H1060V260H900Z"/>
-			<g class="motion" fill="#ecfccb">
-				<circle cx="962" cy="244" r="3" opacity="0">
-					<animate attributeName="cy" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.05;0.7;1" keySplines="0 0 1 1;0.5 0 0.8 1;0 0 1 1" values="244;244;204;204"/>
-					<animate attributeName="opacity" dur="3s" repeatCount="indefinite" keyTimes="0;0.05;0.15;0.6;0.7;1" values="0;0;0.85;0.85;0;0"/>
-				</circle>
-				<circle cx="990" cy="244" r="4" opacity="0">
-					<animate attributeName="cy" dur="4.5s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.3;0.9;1" keySplines="0 0 1 1;0.5 0 0.8 1;0 0 1 1" values="244;244;204;204"/>
-					<animate attributeName="opacity" dur="4.5s" repeatCount="indefinite" keyTimes="0;0.3;0.4;0.8;0.9;1" values="0;0;0.8;0.8;0;0"/>
-				</circle>
-				<circle cx="1010" cy="242" r="2.5" opacity="0">
-					<animate attributeName="cy" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.4;0.95;1" keySplines="0 0 1 1;0.5 0 0.8 1;0 0 1 1" values="242;242;205;205"/>
-					<animate attributeName="opacity" dur="3s" repeatCount="indefinite" keyTimes="0;0.4;0.5;0.85;0.95;1" values="0;0;0.85;0.85;0;0"/>
-				</circle>
-			</g>
-			<g class="static" fill="#ecfccb" opacity="0.8">
-				<circle cx="962" cy="226" r="3"/>
-				<circle cx="990" cy="214" r="4"/>
-				<circle cx="1010" cy="236" r="2.5"/>
-			</g>
+
+		<!-- Desktop icons: the examples -->
+		<g stroke="#000000">
+			<rect x="608" y="194" width="20" height="16" fill="#c0c0c0"/>
+			<rect x="650" y="194" width="20" height="16" fill="#c0c0c0"/>
+			<rect x="692" y="194" width="20" height="16" fill="#c0c0c0"/>
 		</g>
-		<path d="M966 104V156L916 236Q910 248 924 248H1036Q1050 248 1044 236L994 156V104" fill="#ffffff" fill-opacity="0.05" stroke="#e0e0e0" stroke-opacity="0.65" stroke-width="2.5" stroke-linejoin="round"/>
-		<rect x="959" y="95" width="42" height="10" rx="4" fill="#161a26" stroke="#e0e0e0" stroke-opacity="0.65" stroke-width="2.5"/>
-		<path d="M936 222L970 168" stroke="#ffffff" stroke-opacity="0.22" stroke-width="5" stroke-linecap="round"/>
+		<g fill="#000080">
+			<rect x="609" y="195" width="18" height="4"/>
+			<rect x="651" y="195" width="18" height="4"/>
+			<rect x="693" y="195" width="18" height="4"/>
+		</g>
+		<g fill="#ffffff">
+			<rect x="609" y="199" width="18" height="10"/>
+			<rect x="651" y="199" width="18" height="10"/>
+			<rect x="693" y="199" width="18" height="10"/>
+		</g>
+		<g class="mono" font-size="9" fill="#ffffff" text-anchor="middle">
+			<text x="618" y="226">msgbox</text>
+			<text x="660" y="226">hello</text>
+			<text x="702" y="226">setup</text>
+		</g>
+
+		<!-- Status bar -->
+		<rect id="status-bar" data-box="" x="587" y="260" width="572" height="23" fill="#c0c0c0"/>
+		<rect x="587" y="260" width="572" height="2" fill="#ffffff"/>
+		<text data-for="status-bar" class="mono" x="598" y="275" font-size="10" fill="#000000">NE  |  16-bit  |  one code segment, one data segment</text>
 	</g>
 	<rect class="edge" x="0.5" y="0.5" width="1199" height="319" rx="18"/>
 </svg>
