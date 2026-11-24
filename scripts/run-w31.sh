@@ -72,7 +72,7 @@ for i in $(seq 1 "$runs"); do
 	else
 		docker rm -f "$name" > /dev/null 2>&1 || true
 		docker run -d --name "$name" --user "$(id -u):$(id -g)" --network host -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY="$DISPLAY" \
-			-e SDL_AUDIODRIVER=dummy -e HOME=/tmp -v "$work/c:/c" -v "$work/d:/d" -v "$work/conf:/conf" --entrypoint dosbox-x \
+			-e SDL_AUDIODRIVER=dummy -e LIBGL_ALWAYS_SOFTWARE=1 -e HOME=/tmp -v "$work/c:/c" -v "$work/d:/d" -v "$work/conf:/conf" --entrypoint dosbox-x \
 			"${DOSBOX_IMAGE:?set DOSBOX_IMAGE, or put dosbox-x on the path}" -conf /conf/run.conf -nomenu -fastlaunch > /dev/null
 		running() { [ "$(docker inspect -f '{{.State.Running}}' "$name" 2> /dev/null)" = true ]; }
 		stop() { docker rm -f "$name" > /dev/null 2>&1 || true; }

@@ -27,6 +27,7 @@ python3 -m unittest discover -s tests -v
 CARGO_TARGET_DIR=/tmp/w16-target OUT_DIR=/tmp/w16-out bash scripts/build.sh
 python3 tools/ne_check.py /tmp/w16-out/BIGSEG.EXE   # needs objdump
 W31_TREE=DIR DOSBOX_IMAGE=IMAGE bash scripts/run-w31.sh --runs 30 /tmp/w16-out/BIGSEG.EXE /exit   # local only
+W31_TREE=DIR DOSBOX_IMAGE=IMAGE bash scripts/run-segmove.sh --runs 20 /tmp/w16-out/SEGMOVE.EXE   # data segment moves, local only
 bash scripts/check-banner.sh     # add --shots /tmp/shots for review frames
 docker run --rm -v "$PWD:/workdir" davidanson/markdownlint-cli2:v0.17.2 "**/*.md"
 ```

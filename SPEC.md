@@ -32,9 +32,10 @@ Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stu
 | Checker | `tools/ne_check.py` | Decodes every code segment and fails on a branch that leaves its segment |
 | Fault lookup | `tools/ne_addr2sym.py` | A `segment:offset` from a fault box to a function, through the packer's map |
 | Dumper | `tools/ne_dump.py` | An independent NE reader |
-| Examples | `examples/{msgbox,hello,setup,bigseg}` | Programs built by `scripts/build.sh` |
+| Examples | `examples/{msgbox,hello,setup,bigseg,segmove}` | Programs built by `scripts/build.sh` |
 | Tests | `tests/test_ne_pack.py`, `tests/test_segments.py` | Packer, segment and generator tests |
 | Windows 3.11 harness | `scripts/run-w31.sh` | Runs a program on a Windows 3.11 tree you supply, under DOSBox-X, and counts passing runs |
+| Segment move test | `examples/segmove`, `scripts/run-segmove.sh` | Forces Windows to move the data segment during `MessageBox` and `GetOpenFileName`, and checks the stack alias followed it |
 
 ## Behaviour
 
@@ -55,6 +56,8 @@ Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stu
 **Checker.** `python3 tools/ne_check.py file.exe` (needs `objdump`).
 
 **Windows 3.11 harness.** `W31_TREE=DIR [DOSBOX_IMAGE=IMAGE] [OUT=DIR] [WAIT=S] scripts/run-w31.sh [--runs N] [--log NAME] PROGRAM.EXE [ARGUMENTS...]`.
+
+**Segment move test.** `W31_TREE=DIR [DOSBOX_IMAGE=IMAGE] [OUT=DIR] scripts/run-segmove.sh [--runs N] [--variants "LIST"] out/SEGMOVE.EXE`. `SEGMOVE.EXE [/mb|/cd] [/dsrealloc] [/exit]` writes `SEGMOVE.LOG` next to itself, ending `RESULT: PASS|FAIL`, `MOVES: <n>` (moves of the data segment during the blocking call, by `stack_moves()`) and `EXIT: <code>`, and returns that code. The script fails when a run fails or when no run of a variant saw a move.
 
 **Resources.** A JSON object with `dialogs`, `strings` and `rcdata`. Dialog IDs, string IDs and raw-data IDs are integers; `rcdata` entries name a file relative to the JSON. Raw data starts with its exact length as a little-endian 32-bit number.
 

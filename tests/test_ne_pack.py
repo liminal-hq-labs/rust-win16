@@ -229,6 +229,23 @@ class GenImportsTests(unittest.TestCase):
 		self.assertEqual(lines.count("push ds"), 3)  # two string arguments become DS:offset, and one restores ES
 		self.assertIn("__w16imp_USER_1_MessageBox:", lines)
 
+	def test_check_spec_reads_commdlg_and_compares_names_and_argument_counts(self):
+		import tempfile
+
+		with tempfile.TemporaryDirectory() as d:
+			for name, text in (
+				("krnl.spec", "5 pascal -ret16 LocalAlloc(word word) LocalAlloc16\n"),
+				("user.exe16.spec", ""),
+				("gdi.exe16.spec", ""),
+				("commdlg.dll16.spec", "1 pascal -ret16 GetOpenFileName(segptr) GetOpenFileName16\n"),
+			):
+				with open(os.path.join(d, name), "w", encoding="utf-8") as f:
+					f.write(text)
+			good = [("KERNEL", 5, "LocalAlloc", "ww", "w"), ("COMMDLG", 1, "GetOpenFileName", "p", "w")]
+			self.assertEqual(gen_imports.check_spec(good, d), 0)
+			self.assertEqual(gen_imports.check_spec([("KERNEL", 5, "LocalFree", "ww", "w")], d), 1)  # the ordinal belongs to another name
+			self.assertEqual(gen_imports.check_spec([("COMMDLG", 1, "GetOpenFileName", "pw", "w")], d), 1)  # wrong argument count
+
 	def test_long_arguments_push_the_high_word_first(self):
 		lines = gen_imports.stub("USER", 107, "DefWindowProc", "wwwl", "l")
 		pushes = [ln for ln in lines if "[bp+" in ln]

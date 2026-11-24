@@ -63,6 +63,7 @@ To add a program, add a `[[bin]]` to `Cargo.toml`, add its name to the loop in `
 | `msgbox` | One `MessageBox`: the smallest program, 948 bytes |
 | `hello` | A window class, a message loop, painting, and a native three-page wizard dialog driven by a state machine |
 | `setup` | A wizard, a modeless progress dialog with a message pump, a bundled file read from a resource and copied to `C:\W16TEST`, an INI receipt and a result log |
+| `segmove` | Forces Windows to move the data segment while a `MessageBox` or a `GetOpenFileName` dialog is open and checks that the 32-bit stack followed it; `scripts/run-segmove.sh` runs it on Windows 3.11 many times |
 | `bigseg` | 88 KB of code in five segments: calls, tail calls, function pointers, `dyn` and a jump table across all of them, a discardable segment thrown out and called again, each result checked against a second implementation; `BIGSEG /exit` writes `BIGSEG.LOG` and ends Windows |
 
 ## How the packer works

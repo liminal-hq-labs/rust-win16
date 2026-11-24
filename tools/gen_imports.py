@@ -114,10 +114,13 @@ def render(rows):
 
 
 def check_spec(rows, spec_dir):
-	files = {"KERNEL": "krnl.spec", "USER": "user.exe16.spec", "GDI": "gdi.exe16.spec"}
+	files = {"KERNEL": "krnl.spec", "USER": "user.exe16.spec", "GDI": "gdi.exe16.spec", "COMMDLG": "commdlg.dll16.spec"}
 	bad = 0
 	for mod, ordinal, name, args, ret in rows:
-		with open(os.path.join(spec_dir, files[mod]), encoding="utf-8") as f:
+		path = os.path.join(spec_dir, files[mod])
+		if mod == "KERNEL" and not os.path.exists(path):
+			path = os.path.join(spec_dir, "krnl386.exe16.spec")
+		with open(path, encoding="utf-8") as f:
 			text = f.read()
 		m = re.search(rf"^{ordinal}\s+\S+(?:\s+-\S+)*\s+(\w+)\(([^)]*)\)", text, re.M)
 		if not m:
@@ -125,6 +128,10 @@ def check_spec(rows, spec_dir):
 			bad += 1
 			continue
 		want = len(m.group(2).split())
+		if m.group(1) != name and not name.startswith(m.group(1)):
+			print(f"spec mismatch: {mod}.{ordinal} is {m.group(1)} in the spec, {name} here")
+			bad += 1
+			continue
 		if want != len(args):
 			print(f"spec mismatch: {name} has {want} args in the spec ({m.group(1)}), {len(args)} here")
 			bad += 1
