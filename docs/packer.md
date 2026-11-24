@@ -11,6 +11,7 @@ The build has three stages: `rustc` and `rust-lld` produce a 32-bit x86 ELF, `to
 - [Function pointers, `dyn` and jump tables](#function-pointers-dyn-and-jump-tables)
 - [Load-on-call and discardable segments](#load-on-call-and-discardable-segments)
 - [The 32-bit stack](#the-32-bit-stack)
+- [When the data segment moves](#when-the-data-segment-moves)
 - [The NE file it writes](#the-ne-file-it-writes)
 - [Symbols the packer reads](#symbols-the-packer-reads)
 - [Import stubs](#import-stubs)
@@ -125,6 +126,29 @@ Rust addresses its stack through ESP (`mov esi, [esp+0x14]` carries an address-s
 - `w16_exit` goes back to the 16-bit stack, frees the alias and ends the task. Inline assembly that calls DOS or Windows directly (see `dos_mkdir`) must switch the same way.
 
 `mov ss` holds off interrupts until after the next instruction, so `movzx esp, sp` cleans ESP before anything can use it. If DPMI refuses the alias, both selectors are the real one and the program runs as before, exposed to the ticks.
+
+## When the data segment moves
+
+Windows 3.11 moves the automatic data segment when it compacts memory around it (the test below watched it do so), and it updates only its own selector. The alias the program runs on keeps the old base until `w16_sync_alias` moves it, so a missed sync would leave Rust reading and writing the old, freed place. The syncs are placed at every point where Windows may have moved the segment: after each import stub's far call, on entry to `export_proc!` and after `dos_mkdir`'s INT 21h. A callback that Windows runs inside a blocking call (a `WM_TIMER` procedure or a common dialog hook inside `MessageBox` or `GetOpenFileName`) is one of those points: the segment can move while the callback runs and again before the blocking stub returns.
+
+`examples/segmove` and `scripts/run-segmove.sh` test that. The program starts a `SetTimer` callback (an `export_proc!` procedure) and calls `MessageBox`, or calls `GetOpenFileName` with an `OFN_ENABLEHOOK` hook (also an `export_proc!` procedure) that starts a timer of its own. Inside the callback it forces movement: moveable `GlobalAlloc` blocks of 32 KB freed in an order that leaves holes, then `GlobalCompact(-1)`; 120 fixed `LocalAlloc` blocks that grow the local heap from 4 KB to about 34 KB, with a `LocalReAlloc`; sixteen 256 KB blocks and a 1 MB block; and, with `/dsrealloc`, `GlobalReAlloc` of the data segment's own handle. After every step it reads the data segment's base and the alias's base through DPMI (0006h) and logs both, counts the bytes that changed in a 256-byte buffer on its stack and in a 256-byte table in data, and logs `stack_moves()`. Then it closes the dialog itself (`EndDialog` for the message box, a posted `IDCANCEL` for the file dialog), and checks a second buffer that lived on the program's own stack across the blocking call, which is where a stale alias would show.
+
+A control alias, made with DPMI 000Ah at start-up and never synced, is a second witness: it keeps the base the data segment had, so its base differs from the data segment's exactly when Windows moved it. The test fails when the counter and the control disagree. Reading through the control after a move is not possible: the old place is freed memory and the read took a page fault in an earlier version of the test, which is also what a stale alias would do.
+
+On Windows for Workgroups 3.11 in DOSBox-X (Pentium, 32 MB, Startup group removed), 30 runs of each variant, each a fresh session:
+
+| Variant | Passed | Data segment moved in the blocking call | Moves per run | Control agreed |
+|---|---|---|---|---|
+| `/mb` (`MessageBox`, timer callback) | 30 of 30 | 30 of 30 | 2 | 30 of 30 |
+| `/cd` (`GetOpenFileName`, hook) | 30 of 30 | 30 of 30 | 1 | 30 of 30 |
+| `/mb /dsrealloc` | 30 of 30 | 30 of 30 | 2 | 30 of 30 |
+| `/cd /dsrealloc` | 30 of 30 | 30 of 30 | 1 | 30 of 30 |
+
+Every run that moved the segment passed, with no byte changed and no stale alias. The moves come from `GlobalCompact` after the global blocks are freed (the segment went from a base near `80A70580` to `80B4C000` and then to `00086F80` in the message box variant) and, in the file dialog, from the `GlobalCompact` made in the hook's `WM_INITDIALOG`. Local heap growth and `GlobalReAlloc` of the data segment grew it from 17 KB to 48 KB and 50 KB without moving it once the segment had been compacted next to free memory; they were never what moved it here. What was not shown: a move forced by growing the heap, a second task allocating while a dialog is open, other Windows versions and real hardware.
+
+The 120 runs above were made without `/exit`, so Windows stayed open and each run was cut off after the harness's 100-second wait; the logs, the `RESULT` lines and the move counts are the same as with it. `scripts/run-segmove.sh` now adds `/exit`, and a further 20 runs of each variant with it (80 in all) passed 80 of 80, each moving the segment, in a few seconds each.
+
+Expected output of `scripts/run-segmove.sh`: every variant `30 of 30 passed`, a non-zero count of runs that moved, and `agreed` equal to the runs. A log ends with `RESULT: PASS`, `MOVES: <n>` and `EXIT: 0`. The script fails when a run fails or when a variant never saw a move, since a pass without one proves nothing. A run takes a few seconds; the whole table takes about 15 minutes.
 
 ## The NE file it writes
 

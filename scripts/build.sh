@@ -8,7 +8,7 @@ set -euo pipefail
 
 # Usage: scripts/build.sh [--regen]
 #
-# Writes out/MSGBOX.EXE, out/HELLO.EXE, out/SETUP.EXE and out/BIGSEG.EXE. `--regen` rebuilds src/imports.rs from tools/imports.tbl first.
+# Writes out/MSGBOX.EXE, out/HELLO.EXE, out/SETUP.EXE and out/BIGSEG.EXE and out/SEGMOVE.EXE. `--regen` rebuilds src/imports.rs from tools/imports.tbl first.
 # Set CARGO_TARGET_DIR to keep the build output outside the tree and OUT_DIR to move the executables.
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -28,7 +28,7 @@ fi
 out="${OUT_DIR:-out}"
 mkdir -p "$out"
 elf_dir="$CARGO_TARGET_DIR/win16/release"
-for prog in msgbox hello setup bigseg; do
+for prog in msgbox hello setup bigseg segmove; do
 	RES_ARGS=()
 	[ -f "examples/$prog/resources.json" ] && RES_ARGS=(--resources "examples/$prog/resources.json")
 	[ -f "examples/$prog/segments.json" ] && RES_ARGS+=(--segments "examples/$prog/segments.json")

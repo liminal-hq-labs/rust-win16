@@ -39,6 +39,137 @@ global_asm!(
 	".byte 0x66, 0xc3",
 );
 
+// KERNEL.5 LocalAlloc
+global_asm!(
+	".code16",
+	".section .text.imp_LocalAlloc,\"ax\"",
+	".globl LocalAlloc",
+	"LocalAlloc:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"push word ptr [bp+12]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_5_LocalAlloc",
+	"__w16imp_KERNEL_5_LocalAlloc:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.6 LocalReAlloc
+global_asm!(
+	".code16",
+	".section .text.imp_LocalReAlloc,\"ax\"",
+	".globl LocalReAlloc",
+	"LocalReAlloc:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"push word ptr [bp+12]",
+	"push word ptr [bp+16]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_6_LocalReAlloc",
+	"__w16imp_KERNEL_6_LocalReAlloc:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.7 LocalFree
+global_asm!(
+	".code16",
+	".section .text.imp_LocalFree,\"ax\"",
+	".globl LocalFree",
+	"LocalFree:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_7_LocalFree",
+	"__w16imp_KERNEL_7_LocalFree:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.13 LocalCompact
+global_asm!(
+	".code16",
+	".section .text.imp_LocalCompact,\"ax\"",
+	".globl LocalCompact",
+	"LocalCompact:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_13_LocalCompact",
+	"__w16imp_KERNEL_13_LocalCompact:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
 // KERNEL.15 GlobalAlloc
 global_asm!(
 	".code16",
@@ -58,6 +189,41 @@ global_asm!(
 	".byte 0x9a",
 	".globl __w16imp_KERNEL_15_GlobalAlloc",
 	"__w16imp_KERNEL_15_GlobalAlloc:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.16 GlobalReAlloc
+global_asm!(
+	".code16",
+	".section .text.imp_GlobalReAlloc,\"ax\"",
+	".globl GlobalReAlloc",
+	"GlobalReAlloc:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"push word ptr [bp+14]",
+	"push word ptr [bp+12]",
+	"push word ptr [bp+16]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_16_GlobalReAlloc",
+	"__w16imp_KERNEL_16_GlobalReAlloc:",
 	".word 0, 0",
 	".byte 0x66, 0xe8",
 	".long w16_sync_alias - . - 4",
@@ -156,6 +322,106 @@ global_asm!(
 	".byte 0x9a",
 	".globl __w16imp_KERNEL_19_GlobalUnlock",
 	"__w16imp_KERNEL_19_GlobalUnlock:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.20 GlobalSize
+global_asm!(
+	".code16",
+	".section .text.imp_GlobalSize,\"ax\"",
+	".globl GlobalSize",
+	"GlobalSize:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_20_GlobalSize",
+	"__w16imp_KERNEL_20_GlobalSize:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"shl edx, 16",
+	"or eax, edx",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.21 GlobalHandle
+global_asm!(
+	".code16",
+	".section .text.imp_GlobalHandle,\"ax\"",
+	".globl GlobalHandle",
+	"GlobalHandle:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_21_GlobalHandle",
+	"__w16imp_KERNEL_21_GlobalHandle:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"shl edx, 16",
+	"or eax, edx",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.22 GlobalFlags
+global_asm!(
+	".code16",
+	".section .text.imp_GlobalFlags,\"ax\"",
+	".globl GlobalFlags",
+	"GlobalFlags:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_22_GlobalFlags",
+	"__w16imp_KERNEL_22_GlobalFlags:",
 	".word 0, 0",
 	".byte 0x66, 0xe8",
 	".long w16_sync_alias - . - 4",
@@ -960,6 +1226,37 @@ global_asm!(
 	".byte 0x66, 0xc3",
 );
 
+// KERNEL.162 LocalHeapSize
+global_asm!(
+	".code16",
+	".section .text.imp_LocalHeapSize,\"ax\"",
+	".globl LocalHeapSize",
+	"LocalHeapSize:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_162_LocalHeapSize",
+	"__w16imp_KERNEL_162_LocalHeapSize:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
 // USER.1 MessageBox
 global_asm!(
 	".code16",
@@ -1079,6 +1376,75 @@ global_asm!(
 	".byte 0x9a",
 	".globl __w16imp_USER_7_ExitWindows",
 	"__w16imp_USER_7_ExitWindows:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// USER.10 SetTimer
+global_asm!(
+	".code16",
+	".section .text.imp_SetTimer,\"ax\"",
+	".globl SetTimer",
+	"SetTimer:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"push word ptr [bp+12]",
+	"push word ptr [bp+16]",
+	"push word ptr [bp+22]",
+	"push word ptr [bp+20]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_USER_10_SetTimer",
+	"__w16imp_USER_10_SetTimer:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// USER.12 KillTimer
+global_asm!(
+	".code16",
+	".section .text.imp_KillTimer,\"ax\"",
+	".globl KillTimer",
+	"KillTimer:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"push word ptr [bp+12]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_USER_12_KillTimer",
+	"__w16imp_USER_12_KillTimer:",
 	".word 0, 0",
 	".byte 0x66, 0xe8",
 	".long w16_sync_alias - . - 4",
@@ -1371,6 +1737,41 @@ global_asm!(
 	".byte 0x66, 0xc3",
 );
 
+// USER.50 FindWindow
+global_asm!(
+	".code16",
+	".section .text.imp_FindWindow,\"ax\"",
+	".globl FindWindow",
+	"FindWindow:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+10]",
+	"push word ptr [bp+8]",
+	"push ds",
+	"push word ptr [bp+12]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_USER_50_FindWindow",
+	"__w16imp_USER_50_FindWindow:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
 // USER.53 DestroyWindow
 global_asm!(
 	".code16",
@@ -1388,6 +1789,37 @@ global_asm!(
 	".byte 0x9a",
 	".globl __w16imp_USER_53_DestroyWindow",
 	"__w16imp_USER_53_DestroyWindow:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// USER.60 GetActiveWindow
+global_asm!(
+	".code16",
+	".section .text.imp_GetActiveWindow,\"ax\"",
+	".globl GetActiveWindow",
+	"GetActiveWindow:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_USER_60_GetActiveWindow",
+	"__w16imp_USER_60_GetActiveWindow:",
 	".word 0, 0",
 	".byte 0x66, 0xe8",
 	".long w16_sync_alias - . - 4",
@@ -2300,12 +2732,84 @@ global_asm!(
 	".byte 0x66, 0xc3",
 );
 
+// COMMDLG.1 GetOpenFileName
+global_asm!(
+	".code16",
+	".section .text.imp_GetOpenFileName,\"ax\"",
+	".globl GetOpenFileName",
+	"GetOpenFileName:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push ds",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_COMMDLG_1_GetOpenFileName",
+	"__w16imp_COMMDLG_1_GetOpenFileName:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// COMMDLG.26 CommDlgExtendedError
+global_asm!(
+	".code16",
+	".section .text.imp_CommDlgExtendedError,\"ax\"",
+	".globl CommDlgExtendedError",
+	"CommDlgExtendedError:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_COMMDLG_26_CommDlgExtendedError",
+	"__w16imp_COMMDLG_26_CommDlgExtendedError:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
 unsafe extern "C" {
 	pub fn GetVersion() -> u32;
+	pub fn LocalAlloc(a0: u32, a1: u32) -> u32;
+	pub fn LocalReAlloc(a0: u32, a1: u32, a2: u32) -> u32;
+	pub fn LocalFree(a0: u32) -> u32;
+	pub fn LocalCompact(a0: u32) -> u32;
 	pub fn GlobalAlloc(a0: u32, a1: u32) -> u32;
+	pub fn GlobalReAlloc(a0: u32, a1: u32, a2: u32) -> u32;
 	pub fn GlobalFree(a0: u32) -> u32;
 	pub fn GlobalLock(a0: u32) -> u32;
 	pub fn GlobalUnlock(a0: u32) -> u32;
+	pub fn GlobalSize(a0: u32) -> u32;
+	pub fn GlobalHandle(a0: u32) -> u32;
+	pub fn GlobalFlags(a0: u32) -> u32;
 	pub fn GlobalCompact(a0: u32) -> u32;
 	pub fn Yield() -> u32;
 	pub fn WaitEvent(a0: u32) -> u32;
@@ -2329,10 +2833,13 @@ unsafe extern "C" {
 	pub fn WritePrivateProfileString(a0: u32, a1: u32, a2: u32, a3: u32) -> u32;
 	pub fn SetErrorMode(a0: u32) -> u32;
 	pub fn GetWinFlags() -> u32;
+	pub fn LocalHeapSize() -> u32;
 	pub fn MessageBox(a0: u32, a1: u32, a2: u32, a3: u32) -> u32;
 	pub fn InitApp(a0: u32) -> u32;
 	pub fn PostQuitMessage(a0: u32) -> u32;
 	pub fn ExitWindows(a0: u32, a1: u32) -> u32;
+	pub fn SetTimer(a0: u32, a1: u32, a2: u32, a3: u32) -> u32;
+	pub fn KillTimer(a0: u32, a1: u32) -> u32;
 	pub fn SetFocus(a0: u32) -> u32;
 	pub fn GetClientRect(a0: u32, a1: u32) -> u32;
 	pub fn EnableWindow(a0: u32, a1: u32) -> u32;
@@ -2341,7 +2848,9 @@ unsafe extern "C" {
 	pub fn EndPaint(a0: u32, a1: u32) -> u32;
 	pub fn CreateWindow(a0: u32, a1: u32, a2: u32, a3: u32, a4: u32, a5: u32, a6: u32, a7: u32, a8: u32, a9: u32, a10: u32) -> u32;
 	pub fn ShowWindow(a0: u32, a1: u32) -> u32;
+	pub fn FindWindow(a0: u32, a1: u32) -> u32;
 	pub fn DestroyWindow(a0: u32) -> u32;
+	pub fn GetActiveWindow() -> u32;
 	pub fn RegisterClass(a0: u32) -> u32;
 	pub fn GetDC(a0: u32) -> u32;
 	pub fn ReleaseDC(a0: u32, a1: u32) -> u32;
@@ -2368,4 +2877,6 @@ unsafe extern "C" {
 	pub fn SetBkMode(a0: u32, a1: u32) -> u32;
 	pub fn TextOut(a0: u32, a1: u32, a2: u32, a3: u32, a4: u32) -> u32;
 	pub fn GetStockObject(a0: u32) -> u32;
+	pub fn GetOpenFileName(a0: u32) -> u32;
+	pub fn CommDlgExtendedError() -> u32;
 }

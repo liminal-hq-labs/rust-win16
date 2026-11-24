@@ -104,6 +104,7 @@ Use `#` comments for shell, YAML, TOML and Dockerfiles, and an XML comment for S
 - `python3 -m unittest discover -s tests -v` — packer, segments and stub generator
 - `python3 tools/ne_check.py out/BIGSEG.EXE` — decode the packed code (needs `objdump`)
 - `W31_TREE=DIR DOSBOX_IMAGE=IMAGE bash scripts/run-w31.sh --runs 30 out/BIGSEG.EXE /exit` — Windows 3.11 under DOSBox-X, local only
+- `W31_TREE=DIR DOSBOX_IMAGE=IMAGE bash scripts/run-segmove.sh --runs 20 out/SEGMOVE.EXE` — the data segment move test on Windows 3.11, local only
 - `CARGO_TARGET_DIR=/tmp/w16-target OUT_DIR=/tmp/w16-out bash scripts/build.sh`, then `file` on the output (expect `NE`) — the examples build and pack
 - `cargo fmt --all -- --check` — Rust formatting
 - `bash scripts/check-banner.sh` — hero banner rules and text fit (needs `xmllint`, `rsvg-convert`, `python3` and Chromium; `--shots DIR` writes frames to look at)
@@ -126,7 +127,7 @@ README.md SPEC.md AGENTS.md CLAUDE.md LICENSE-APACHE LICENSE-MIT
 .editorconfig .markdownlint.jsonc .gitignore rustfmt.toml rust-toolchain.toml
 Cargo.toml Cargo.lock win16.json link.ld .cargo/config.toml
 src/           runtime crate: lib.rs, generated imports.rs, wizard.rs, probe.rs
-examples/      msgbox, hello, setup and bigseg, each with its resources or segments file
+examples/      msgbox, hello, setup, bigseg and segmove, each with its resources or segments file
 tools/         ne_pack.py, ne_dump.py, ne_check.py, ne_addr2sym.py, rust_demangle.py, gen_imports.py and imports.tbl
 tests/         packer, segment and stub generator tests
 assets/        hero banner

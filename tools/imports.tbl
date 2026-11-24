@@ -11,10 +11,18 @@
 #   f  a near pointer into the code segment, pushed as CS:offset
 # RET is w (AX, zero-extended), l (DX:AX) or v (nothing).
 KERNEL 3 GetVersion - l
+KERNEL 5 LocalAlloc ww w
+KERNEL 6 LocalReAlloc www w
+KERNEL 7 LocalFree w w
+KERNEL 13 LocalCompact w w
 KERNEL 15 GlobalAlloc wl w
+KERNEL 16 GlobalReAlloc wlw w
 KERNEL 17 GlobalFree w w
 KERNEL 18 GlobalLock w l
 KERNEL 19 GlobalUnlock w w
+KERNEL 20 GlobalSize w l
+KERNEL 21 GlobalHandle w l
+KERNEL 22 GlobalFlags w w
 KERNEL 25 GlobalCompact l l
 KERNEL 29 Yield - v
 KERNEL 30 WaitEvent w w
@@ -38,10 +46,13 @@ KERNEL 128 GetPrivateProfileString ppppwp w
 KERNEL 129 WritePrivateProfileString pppp w
 KERNEL 107 SetErrorMode w w
 KERNEL 132 GetWinFlags - l
+KERNEL 162 LocalHeapSize - w
 USER 1 MessageBox wppw w
 USER 5 InitApp w w
 USER 6 PostQuitMessage w v
 USER 7 ExitWindows lw w
+USER 10 SetTimer wwwl w
+USER 12 KillTimer ww w
 USER 22 SetFocus w w
 USER 33 GetClientRect wp v
 USER 34 EnableWindow ww w
@@ -50,7 +61,9 @@ USER 39 BeginPaint wp w
 USER 40 EndPaint wp v
 USER 41 CreateWindow pplwwwwwwwl w
 USER 42 ShowWindow ww w
+USER 50 FindWindow lp w
 USER 53 DestroyWindow w w
+USER 60 GetActiveWindow - w
 USER 57 RegisterClass p w
 USER 66 GetDC w w
 USER 68 ReleaseDC ww w
@@ -77,3 +90,5 @@ USER 179 GetSystemMetrics w w
 GDI 2 SetBkMode ww w
 GDI 33 TextOut wwwpw w
 GDI 87 GetStockObject w w
+COMMDLG 1 GetOpenFileName p w
+COMMDLG 26 CommDlgExtendedError - w
