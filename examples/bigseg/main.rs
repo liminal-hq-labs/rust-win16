@@ -409,6 +409,163 @@ core::arch::global_asm!(
 unsafe extern "C" {
 	/// Segment 3's selector in the high half, and 1 in the low half when the segment is present.
 	fn seg3_present() -> u32;
+	/// Calls `GlobalCompact(-1)` through its stub with EBP set to `frame`.
+	fn compact_with_bp(frame: u32) -> u32;
+}
+
+// Calls GlobalCompact(-1) with EBP pointing where the caller says, the way Rust code may leave EBP holding a pointer into its own stack.
+core::arch::global_asm!(
+	".code16",
+	".section .text.w16fixed.compact_with_bp,\"ax\"",
+	".globl compact_with_bp",
+	"compact_with_bp:",
+	"push ebp",
+	"mov ebp, dword ptr [esp+8]",
+	".byte 0x66, 0x6a, 0xff",
+	".byte 0x66, 0xe8",
+	".long GlobalCompact - . - 4",
+	"add sp, 4",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+static mut MSG: Msg = Msg {
+	hwnd: 0,
+	message: 0,
+	wparam: 0,
+	lparam: 0,
+	time: 0,
+	pt: [0; 2],
+};
+
+export_proc!(BigsegWndProc, bigseg_wndproc);
+
+static mut CLASS: WndClass = WndClass {
+	style: 0,
+	wndproc: 0,
+	cls_extra: 0,
+	wnd_extra: 0,
+	instance: 0,
+	icon: 0,
+	cursor: 0,
+	background: 0,
+	menu: 0,
+	class_name: 0,
+};
+static mut HWND: u32 = 0;
+static mut CLASS_ATOM: u32 = 0;
+/// Bytes the window procedure found changed in its own stack buffer, over every WM_USER it handled.
+static mut INNER_CHANGED: u32 = 0;
+static mut INNER_RUNS: u32 = 0;
+
+extern "C" fn bigseg_wndproc(hwnd: u32, msg: u32, wparam: u32, lparam: u32) -> u32 {
+	if msg != WM_USER {
+		return unsafe { DefWindowProc(hwnd, msg, wparam, lparam) };
+	}
+	// A stack buffer in a callback, live across calls that yield and compact, while the caller's buffer is live below it.
+	let mut buf = [0u8; 512];
+	for (i, b) in buf.iter_mut().enumerate() {
+		*b = (i as u8) ^ 0x3C;
+	}
+	let p = core::hint::black_box(buf.as_mut_ptr());
+	unsafe {
+		Yield();
+		GlobalCompact(0xFFFF_FFFF);
+		cold::shapes_total(2);
+		let got = core::slice::from_raw_parts(core::hint::black_box(p), 512);
+		for i in 0..512 {
+			if got[i] != (i as u8) ^ 0x3C {
+				INNER_CHANGED += 1;
+			}
+		}
+		INNER_RUNS += 1;
+	}
+	0
+}
+
+/// A hidden window, so that the stack-buffer check also runs through `DispatchMessage` and `export_proc!`.
+fn make_window(hinst: u32) -> u32 {
+	unsafe {
+		let c = addr_of_mut!(CLASS);
+		(*c).wndproc = far(code_selector(), BigsegWndProc as *const () as usize as u32);
+		(*c).instance = hinst as u16;
+		(*c).class_name = far(data_selector(), cs!("BigsegWin"));
+		CLASS_ATOM = RegisterClass(c as u32);
+		HWND = CreateWindow(
+			cs!("BigsegWin"),
+			cs!("Big segments"),
+			0,
+			0,
+			0,
+			10,
+			10,
+			0,
+			0,
+			hinst,
+			0,
+		);
+		HWND
+	}
+}
+
+/// Fills a 512-byte buffer on the stack with a pattern, makes calls into Windows that yield, discard and move memory, and logs every byte
+/// that changed. With `provoke`, the buffer holds a frame that looks like a far return into segment 3, and EBP points at it during
+/// `GlobalCompact`, as it might if Rust kept a pointer into the buffer in EBP.
+#[inline(never)]
+fn stack_buffer(log: &mut Log, name: &str, provoke: bool) -> bool {
+	let mut buf = [0u8; 512];
+	for (i, b) in buf.iter_mut().enumerate() {
+		*b = (i as u8) ^ 0xA5;
+	}
+	// Windows marks a far frame by an odd link to it: EBP will be the frame's address plus one, so the frame must sit at an even address.
+	let frame = if (buf.as_ptr() as usize + 0x100) & 1 == 0 {
+		0x100
+	} else {
+		0x101
+	};
+	if provoke {
+		let seg3 = (unsafe { seg3_present() } >> 16) as u16;
+		buf[frame..frame + 2].copy_from_slice(&0u16.to_le_bytes()); // the end of the chain
+		buf[frame + 2..frame + 4].copy_from_slice(&0x0c40u16.to_le_bytes()); // a far return into segment 3
+		buf[frame + 4..frame + 6].copy_from_slice(&seg3.to_le_bytes());
+	}
+	let want = buf;
+	let p = core::hint::black_box(buf.as_mut_ptr());
+	unsafe {
+		cold::shapes_total(1);
+		let m = addr_of_mut!(MSG) as u32;
+		PeekMessage(m, 0, 0, 0, PM_REMOVE);
+		Yield();
+		if provoke {
+			compact_with_bp(p as u32 + frame as u32 + 1);
+		} else {
+			GlobalCompact(0xFFFF_FFFF);
+		}
+		PeekMessage(m, 0, 0, 0, PM_REMOVE);
+		if HWND != 0 {
+			PostMessage(HWND, WM_USER, 0, 0);
+			while PeekMessage(m, 0, 0, 0, PM_REMOVE) != 0 {
+				DispatchMessage(m);
+			}
+		}
+	}
+	let got = unsafe { core::slice::from_raw_parts(core::hint::black_box(p), 512) };
+	let mut changed = 0;
+	for i in 0..512 {
+		if got[i] != want[i] {
+			if changed < 8 {
+				log.s("  +")
+					.hex(i as u32, 3)
+					.s(": ")
+					.hex(want[i] as u32, 2)
+					.s(" -> ")
+					.hex(got[i] as u32, 2)
+					.nl();
+			}
+			changed += 1;
+		}
+	}
+	check(log, name, changed, 0)
 }
 
 fn check(log: &mut Log, name: &str, got: u32, want: u32) -> bool {
@@ -614,6 +771,28 @@ pub extern "C" fn w16_main(hinst: u32, _hprev: u32, _show: u32) -> u32 {
 		unsafe { seg3_present() } & 1,
 		1,
 	);
+
+	let hwnd = make_window(hinst);
+	log.s("window: class ")
+		.hex(unsafe { CLASS_ATOM }, 4)
+		.s(", hwnd ")
+		.hex(hwnd, 4)
+		.nl();
+	let mut plain = true;
+	for _ in 0..10 {
+		plain &= stack_buffer(log, "stack buffer bytes changed", false);
+	}
+	ok &= plain;
+	log.s("window procedure buffer checks: ")
+		.dec(unsafe { INNER_RUNS })
+		.nl();
+	ok &= check(
+		log,
+		"window procedure buffer bytes changed",
+		unsafe { INNER_CHANGED },
+		0,
+	);
+	ok &= stack_buffer(log, "stack buffer bytes changed, EBP into it", true);
 
 	let (dirty16, seen16) = esp_watch(4_000_000, true);
 	log.s("esp watch, 16-bit stack: ")
