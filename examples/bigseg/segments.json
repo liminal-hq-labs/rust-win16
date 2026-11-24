@@ -1,0 +1,7 @@
+{
+	"segments": {
+		"1": { "name": "MAIN", "budget": 24576 },
+		"3": { "name": "COLD", "place": ["bigseg::cold::*"], "preload": false, "discardable": true }
+	},
+	"auto": { "budget": 40960 }
+}

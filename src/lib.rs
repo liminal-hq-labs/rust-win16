@@ -47,8 +47,19 @@ unsafe extern "C" {
 
 // The task entry point. Windows starts the task here with DS = SS, CX = the stack size and DI = 0, and INITTASK reads those registers,
 // so nothing may run before it. It returns the instance handles in DI and SI, the command line in ES:BX and the show state in DX.
+//
+// Rust addresses the stack through ESP, and on a 16-bit stack segment the high half of ESP is not kept: an interrupt that returns to a
+// 16-bit stack restores only SP (a 386 rule, which Windows 3.1 in 386 Enhanced mode meets at every timer tick), so a dirty high half
+// can turn up between any two instructions. A 32-bit stack segment gets all of ESP back. So the entry code makes a 32-bit alias of the
+// stack segment through DPMI and Rust runs on it; the import stubs switch to the real 16-bit stack for each call into Windows, and
+// `export_proc!` switches to the alias when Windows calls in. Windows never runs on the alias. If DPMI refuses, both are the real one.
 global_asm!(
 	".code16",
+	".section .data.w16stack,\"aw\"",
+	".globl __w16_ss16",
+	".globl __w16_ss32",
+	"__w16_ss16: .word 0",
+	"__w16_ss32: .word 0",
 	".section .text.start,\"ax\"",
 	".globl _start",
 	"_start:",
@@ -69,13 +80,134 @@ global_asm!(
 	"push edx",
 	"push eax",
 	"push ecx",
+	"mov [__w16_ss16], ss",
+	"mov [__w16_ss32], ss",
+	// DPMI 000Ah: an alias of the data segment; 0009h: the same access rights with the big (B) bit; 0008h: a 64 KB limit.
+	"mov bx, ds",
+	"mov ax, 0x000a",
+	"int 0x31",
+	"jc 3f",
+	"mov bx, ax",
+	"lar cx, bx",
+	"mov cl, ch",
+	"mov ch, 0x40",
+	"mov ax, 0x0009",
+	"int 0x31",
+	"jc 4f",
+	"xor cx, cx",
+	"mov dx, 0xffff",
+	"mov ax, 0x0008",
+	"int 0x31",
+	"jc 4f",
+	"mov [__w16_ss32], bx",
+	"mov ss, bx",
+	"movzx esp, sp",
+	"jmp 3f",
+	"4:",
+	"mov ax, 0x0001",
+	"int 0x31",
+	"3:",
+	"push ds",
+	"pop es",
 	".byte 0x66, 0xe8",
 	".long {entry} - . - 4",
+	"push eax",
+	".byte 0x66, 0xe8",
+	".long {exit} - . - 4",
 	"2:",
 	"mov ah, 0x4c",
 	"int 0x21",
+	// Never reached: the reference keeps `w16_shadow_overflow` linked, so the packer can send a full shadow stack there.
+	".byte 0x66, 0xe9",
+	".long {overflow} - . - 4",
 	entry = sym w16_entry,
+	exit = sym w16_exit,
+	overflow = sym w16_shadow_overflow,
 );
+
+// Keeps the 32-bit alias over the data segment. Windows may move the data segment in memory during any call (compacting memory, growing
+// the local heap), and updates only its own selector, so after each call into Windows the import stubs, and `export_proc!` when Windows
+// calls in, read the data segment's base (DPMI 0006h) and move the alias to it (0007h) when it changed. It runs on the 16-bit stack and
+// keeps every register.
+global_asm!(
+	".code16",
+	".section .data.w16stack,\"aw\"",
+	"__w16_base: .long 0",
+	".globl __w16_moves",
+	"__w16_moves: .word 0",
+	".section .text.w16fixed.sync,\"ax\"",
+	".globl w16_sync_alias",
+	"w16_sync_alias:",
+	"push eax",
+	"push ebx",
+	"push ecx",
+	"push edx",
+	"mov bx, word ptr [__w16_ss32]",
+	"cmp bx, word ptr [__w16_ss16]",
+	"je 2f",
+	"mov bx, ds",
+	"mov ax, 0x0006",
+	"int 0x31",
+	"jc 2f",
+	"cmp dx, word ptr [__w16_base]",
+	"jne 3f",
+	"cmp cx, word ptr [__w16_base+2]",
+	"je 2f",
+	"3:",
+	"inc word ptr [__w16_moves]",
+	"mov word ptr [__w16_base], dx",
+	"mov word ptr [__w16_base+2], cx",
+	"mov bx, word ptr [__w16_ss32]",
+	"mov ax, 0x0007",
+	"int 0x31",
+	"2:",
+	"pop edx",
+	"pop ecx",
+	"pop ebx",
+	"pop eax",
+	".byte 0x66, 0xc3",
+);
+
+// Ends the task with the exit code in the low byte of the argument: back to the 16-bit stack, the alias freed, INT 21h function 4Ch.
+global_asm!(
+	".code16",
+	".section .text.w16fixed.exit,\"ax\"",
+	".globl w16_exit",
+	"w16_exit:",
+	"mov dx, word ptr [esp+4]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	"mov bx, word ptr [__w16_ss32]",
+	"mov ax, ss",
+	"cmp bx, ax",
+	"je 2f",
+	"mov [__w16_ss32], ax",
+	"mov ax, 0x0001",
+	"int 0x31",
+	"2:",
+	"mov al, dl",
+	"mov ah, 0x4c",
+	"int 0x21",
+);
+
+unsafe extern "C" {
+	/// Ends the task with `code` as its exit code, after leaving the 32-bit stack. Never returns.
+	pub fn w16_exit(code: u32) -> !;
+	static __w16_ss16: u16;
+	static __w16_ss32: u16;
+	static __w16_moves: u16;
+}
+
+/// How many times the 32-bit stack alias has had to follow the data segment to a new place (the first sync counts as one).
+pub fn stack_moves() -> u32 {
+	unsafe { __w16_moves as u32 }
+}
+
+/// The two stack selectors: the task's 16-bit stack segment, which Windows sees, and the 32-bit alias Rust runs on. They are equal when
+/// DPMI could not make the alias.
+pub fn stack_selectors() -> (u32, u32) {
+	unsafe { (__w16_ss16 as u32, __w16_ss32 as u32) }
+}
 
 unsafe extern "C" fn w16_entry(hinst: u32, hprev: u32, show: u32) -> u32 {
 	unsafe {
@@ -90,7 +222,8 @@ unsafe extern "C" fn w16_entry(hinst: u32, hprev: u32, show: u32) -> u32 {
 ///
 /// Windows calls an exported procedure with the Pascal convention on the application's own stack, so SS is the data segment. The
 /// wrapper loads DS and ES from SS, saves the registers Windows expects back (and the whole of EBX, ESI, EDI and EBP, which Rust
-/// keeps values in), clears the high half of ESP, passes the four arguments as 32-bit values and returns the result in DX:AX.
+/// keeps values in), moves to the 32-bit alias of the stack (see `_start`), passes the four arguments as 32-bit values, returns to the
+/// stack segment it was called on and returns the result in DX:AX.
 #[macro_export]
 macro_rules! export_proc {
 	($name:ident, $f:path) => {
@@ -112,6 +245,10 @@ macro_rules! export_proc {
 			"mov ds, ax",
 			"mov es, ax",
 			"cld",
+			"push ss",
+			".byte 0x66, 0xe8",
+			".long w16_sync_alias - . - 4",
+			"mov ss, word ptr [__w16_ss32]",
 			"movzx esp, sp",
 			"push dword ptr [bp+8]",
 			"movzx eax, word ptr [bp+12]",
@@ -123,6 +260,8 @@ macro_rules! export_proc {
 			".byte 0x66, 0xe8",
 			".long {f} - . - 4",
 			"add sp, 16",
+			"pop ss",
+			"movzx esp, sp",
 			"mov edx, eax",
 			"shr edx, 16",
 			"pop ebx",
@@ -149,7 +288,7 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
 			c"Win16".as_ptr() as u32,
 			MB_ICONSTOP,
 		);
-		asm!("mov ax, 0x4c03", "int 0x21", options(noreturn));
+		w16_exit(3)
 	}
 }
 
@@ -161,11 +300,43 @@ macro_rules! cs {
 	};
 }
 
-/// The code segment selector, for turning an exported procedure's offset into a far pointer.
+// Segment 1's selector. The function lives in segment 1 (the packer pins `.text.w16fixed.*` there), so CS is segment 1's selector
+// whichever segment calls it.
+global_asm!(
+	".code16",
+	".section .text.w16fixed.code_selector,\"ax\"",
+	".globl w16_code_selector",
+	"w16_code_selector:",
+	"xor eax, eax",
+	"mov ax, cs",
+	".byte 0x66, 0xc3",
+);
+
+unsafe extern "C" {
+	fn w16_code_selector() -> u32;
+}
+
+/// The selector of code segment 1, which holds every exported procedure: for turning an exported procedure's offset into a far
+/// pointer. It is the same whichever segment the caller is in.
 pub fn code_selector() -> u32 {
-	let cs: u16;
-	unsafe { asm!("mov ax, cs", out("ax") cs, options(nomem, nostack, preserves_flags)) };
-	cs as u32
+	unsafe { w16_code_selector() }
+}
+
+/// Where a program of several code segments goes when its shadow return stack is full (see docs/packer.md): too many calls through
+/// function pointers or cross-segment tail calls are active at once. The packer jumps here far from whichever segment ran out.
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".text.w16fixed.shadow_overflow")]
+pub extern "C" fn w16_shadow_overflow() -> ! {
+	unsafe {
+		asm!("movzx esp, sp", "push ds", "pop es", options(nostack));
+		MessageBox(
+			0,
+			c"Shadow return stack overflow".as_ptr() as u32,
+			c"Win16".as_ptr() as u32,
+			MB_ICONSTOP,
+		);
+		w16_exit(4)
+	}
 }
 
 /// The data segment selector.
@@ -202,8 +373,13 @@ pub fn dos_mkdir(path: *const u8) -> u16 {
 			"push ebx",
 			"push esi",
 			"push edi",
+			"mov ss, word ptr [__w16_ss16]",
+			"movzx esp, sp",
 			"int 0x21",
 			"setc cl",
+			".byte 0x66, 0xe8",
+			".long w16_sync_alias - . - 4",
+			"mov ss, word ptr [__w16_ss32]",
 			"movzx esp, sp",
 			"pop edi",
 			"pop esi",
