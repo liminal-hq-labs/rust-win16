@@ -21,6 +21,9 @@
 #   w16_shadow_overflow           optional: where a full shadow return stack sends the program (the runtime defines it)
 #   _start                        the entry point (CS:IP in the header)
 #
+# With --library MANIFEST.json the output is a DLL: `LibEntry` replaces `_start`, the exports and their fixed ordinals come from the manifest,
+# a `WEP` is added when the program has none, and a Windows import outside the manifest's allow-list is refused. docs/packer.md has the details.
+#
 # Resources come from a JSON file (see scripts/build.sh and examples/*/resources.json): dialogs, strings and raw data, each with an
 # integer ID. Raw data (RT_RCDATA) starts with its exact length as a little-endian 32-bit number. Segments come from a JSON file too
 # (`--segments`, see docs/packer.md).
@@ -35,7 +38,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from rust_demangle import demangle  # noqa: E402
 
 USAGE = """usage: ne_pack.py [--module NAME] [--description TEXT] [--stack N] [--heap N] [--resources FILE.json]
-                  [--segments FILE.json] [--shadow N] [--map FILE] <in.elf> <out.exe>"""
+                  [--segments FILE.json] [--library MANIFEST.json] [--shadow N] [--map FILE] <in.elf> <out.exe>"""
 
 MZ_STUB_MESSAGE = b"This program requires Microsoft Windows.\r\n$"
 SEG_DATA = 0x0001
@@ -44,7 +47,9 @@ SEG_PRELOAD = 0x0040
 SEG_RELOCS = 0x0100
 SEG_RING3 = 0x0C00
 SEG_DISCARDABLE = 0x1000
+NE_SINGLEDATA = 0x0001
 NE_MULTIPLEDATA = 0x0002
+NE_LIBRARY = 0x8000
 NE_WINAPI = 0x0300
 RES_FLAGS = 0x1030  # MOVEABLE | PURE | DISCARDABLE
 RES_SHIFT = 4
@@ -59,6 +64,12 @@ DEFAULT_SHADOW = 256  # shadow return stack entries, 4 bytes each
 SLOT_SIZE = 10
 RELOC_SELECTOR = 2
 RELOC_FAR = 3
+ENTRY_EXPORTED = 0x01
+ENTRY_SHARED = 0x02
+WEP_CODE = bytes([0xB8, 0x01, 0x00, 0xCA, 0x02, 0x00])  # mov ax, 1 ; retf 2: the default WEP, which succeeds and does nothing
+DEFAULT_WEP_ORDINAL = 1
+DEFAULT_LIBRARY_IMPORTS = ("KERNEL.GlobalAlloc", "KERNEL.GlobalLock", "KERNEL.GlobalUnlock", "KERNEL.GlobalFree")
+LIBRARY_KEYS = {"module", "description", "heap", "exports", "gaps", "imports"}
 R_386_32 = 1
 R_386_PC32 = 2
 R_386_PLT32 = 4  # in a static link, the same as R_386_PC32
@@ -567,8 +578,130 @@ def write_field(buf, off, size, value, signed, what):
 	buf[off : off + size] = (value & ((1 << bits) - 1)).to_bytes(size, "little")
 
 
-def pack(elf_data, module="SETUP", description="", stack=0x2000, heap=0x1000, resources=(), expected_ver=0x030A, segments=None, shadow=None):
+def check_library(lib):
+	"""Validates a library manifest and returns it in the form `pack` uses: exports as {name: (ordinal, words, shared)} (with WEP added)."""
+	if not isinstance(lib, dict):
+		raise PackError("the library manifest must be a JSON object")
+	bad = sorted(set(lib) - LIBRARY_KEYS)
+	if bad:
+		raise PackError(f"unknown key in the library manifest: {bad[0]}")
+	for key in ("module", "description"):
+		if key in lib and not isinstance(lib[key], str):
+			raise PackError(f"library {key} must be a string")
+	heap = lib.get("heap", 0)
+	if not isinstance(heap, int) or isinstance(heap, bool) or not 0 <= heap <= 0xFFFF:
+		raise PackError(f"library heap {heap!r} is not between 0 and 65535")
+	gaps = lib.get("gaps", "allow")
+	if gaps not in ("allow", "error"):
+		raise PackError('library gaps must be "allow" or "error"')
+	allow = lib.get("imports", list(DEFAULT_LIBRARY_IMPORTS))
+	if not isinstance(allow, list) or not all(isinstance(a, str) and re.fullmatch(r"[A-Z0-9]+\.\w+", a) for a in allow):
+		raise PackError('library imports must be a list of "MODULE.Name" strings')
+	raw = lib.get("exports")
+	if not isinstance(raw, dict):
+		raise PackError("the library manifest needs an exports object mapping each name to its ordinal")
+	exports = {}
+	for name, spec in raw.items():
+		if not re.fullmatch(r"[A-Za-z_]\w{0,254}", name):
+			raise PackError(f"export name {name!r} is not an identifier")
+		if isinstance(spec, int) and not isinstance(spec, bool):
+			spec = {"ordinal": spec}
+		if not isinstance(spec, dict) or set(spec) - {"ordinal", "words", "shared"}:
+			raise PackError(f"export {name} must be an ordinal or an object with ordinal, words and shared")
+		ordinal, words, shared = spec.get("ordinal"), spec.get("words", 0), spec.get("shared", False)
+		if not isinstance(ordinal, int) or isinstance(ordinal, bool) or not 1 <= ordinal <= 0x7FFF:
+			raise PackError(f"export {name} has ordinal {ordinal!r}, not between 1 and 32767")
+		if not isinstance(words, int) or isinstance(words, bool) or not 0 <= words <= 31:
+			raise PackError(f"export {name} has {words!r} parameter words, not between 0 and 31")
+		if not isinstance(shared, bool):
+			raise PackError(f"export {name} shared must be true or false")
+		exports[name] = (ordinal, words, shared)
+	if "WEP" not in exports:
+		exports["WEP"] = (DEFAULT_WEP_ORDINAL, 1, False)
+	owner = {}
+	for name, (ordinal, _w, _s) in exports.items():
+		if ordinal in owner:
+			raise PackError(f"exports {owner[ordinal]} and {name} share ordinal {ordinal}")
+		owner[ordinal] = name
+	if gaps == "error":
+		for i in range(1, len(owner) + 1):
+			if i not in owner:
+				raise PackError(f"ordinal {i} is unused, and the manifest says gaps are an error")
+	return {"module": lib.get("module"), "description": lib.get("description"), "heap": lib.get("heap"), "exports": exports, "imports": set(allow)}
+
+
+def load_library(path):
+	"""Reads a library manifest, refusing a name that appears twice in one object (JSON parsers would keep the last)."""
+
+	def no_repeats(pairs):
+		seen = {}
+		for k, v in pairs:
+			if k in seen:
+				raise PackError(f"{path}: {k!r} appears twice")
+			seen[k] = v
+		return seen
+
+	try:
+		with open(path, encoding="utf-8") as f:
+			return json.load(f, object_pairs_hook=no_repeats)
+	except ValueError as e:
+		raise PackError(f"{path}: {e}") from None
+
+
+def library_entry_table(rows):
+	"""The entry table for exports [(ordinal, flags, offset)] in segment 1: runs of fixed entries, with a bundle of unused entries for each gap."""
+	entry = bytearray()
+	rows = sorted(rows)
+	nxt = 1
+	i = 0
+	while i < len(rows):
+		gap = rows[i][0] - nxt
+		while gap:
+			n = min(gap, 255)
+			entry += bytes([n, 0])
+			gap -= n
+		j = i
+		while j + 1 < len(rows) and rows[j + 1][0] == rows[j][0] + 1 and j + 1 - i < 255:
+			j += 1
+		entry += bytes([j - i + 1, 1])
+		for _o, flags, off in rows[i : j + 1]:
+			entry += struct.pack("<BH", flags, off)
+		nxt = rows[j][0] + 1
+		i = j + 1
+	return bytes(entry + b"\0\0")
+
+
+def add_default_wep(elf_data, secs, syms):
+	"""Appends a WEP that returns 1 to the ELF image as a unit of its own in segment 1. Returns the extended image."""
+	top = max((s["addr"] + s["size"] for s in secs if s["flags"] & SHF_EXECINSTR), default=0)
+	index = len(secs)
+	addr = align(top, 16) + 16
+	secs.append({"index": index, "name": ".text.exp_WEP", "type": 1, "flags": SHF_ALLOC | SHF_EXECINSTR, "addr": addr, "off": len(elf_data), "size": len(WEP_CODE), "link": 0, "info": 0, "align": 1})
+	syms.append({"name": "__w16exp_WEP", "value": addr, "size": len(WEP_CODE), "type": 0, "shndx": index})
+	return elf_data + WEP_CODE
+
+
+def pack(elf_data, module=None, description=None, stack=None, heap=None, resources=(), expected_ver=0x030A, segments=None, shadow=None, library=None):
+	"""Packs a linked ELF into an NE executable, or into a DLL when `library` (a manifest, see `check_library`) is given."""
 	secs, syms, rels = read_elf(elf_data)
+	if library is not None:
+		library = check_library(library)
+		module = module or library["module"]
+		if not module:
+			raise PackError("a library needs a module name (--module, or module in the manifest)")
+		description = library["description"] if description is None else description
+		heap = library["heap"] or 0 if heap is None else heap
+		if stack:
+			raise PackError("a library has no stack of its own to size: its private stack lives in its data segment")
+		stack = 0
+		if not any(s["name"] == "__w16exp_WEP" for s in syms):
+			elf_data = add_default_wep(elf_data, secs, syms)
+	else:
+		module = "SETUP" if module is None else module
+		stack = 0x2000 if stack is None else stack
+		heap = 0x1000 if heap is None else heap
+	description = description or ""
+	entry_symbol = "LibEntry" if library is not None else "_start"
 	cfg = check_config(segments or {})
 	if shadow is None:
 		shadow = cfg["shadow"]
@@ -615,8 +748,8 @@ def pack(elf_data, module="SETUP", description="", stack=0x2000, heap=0x1000, re
 			raise PackError(f"{name} is not in code")
 		return u, s["value"] - u.addr
 
-	if code_loc("_start") is None:
-		raise PackError("no _start")
+	if code_loc(entry_symbol) is None:
+		raise PackError(f"no {entry_symbol}")
 	for u in units:
 		if u.size > MAX_SEG:
 			raise PackError(f"code section {u.label()} is {u.size} bytes, over one 64 KB segment")
@@ -667,8 +800,12 @@ def pack(elf_data, module="SETUP", description="", stack=0x2000, heap=0x1000, re
 	exports = []  # (name, offset)
 	for s in syms:
 		nm = s["name"]
-		m = re.fullmatch(r"__w16imp_([A-Z0-9]+)_(\d+)_\w+", nm)
+		m = re.fullmatch(r"__w16imp_([A-Z0-9]+)_(\d+)_(\w+)", nm)
 		if m:
+			if library is not None and f"{m.group(1)}.{m.group(3)}" not in library["imports"]:
+				raise PackError(
+					f"{m.group(1)}.{m.group(3)} is imported by a library, which runs on a private stack and may call only {', '.join(sorted(library['imports'])) or 'nothing'}; list it in the manifest's imports to allow it"
+				)
 			sn, off = place(nm)
 			imports.append((m.group(1), int(m.group(2)), sn, off))
 			continue
@@ -688,6 +825,17 @@ def pack(elf_data, module="SETUP", description="", stack=0x2000, heap=0x1000, re
 			struct.pack_into("<H", code_images[sn], off, 0xFFFF)
 			seg_relocs[sn].append((off, struct.pack("<BBHBBH", RELOC_SELECTOR, 0, off, target, 0, 0)))
 	exports.sort()
+	lib_rows = []
+	if library is not None:
+		found = dict(exports)
+		for name in sorted(set(found) - set(library["exports"])):
+			raise PackError(f"__w16exp_{name} is not in the manifest's exports; every export needs a fixed ordinal there")
+		for name in sorted(set(library["exports"]) - set(found)):
+			raise PackError(f"export {name} is in the manifest but the program defines no __w16exp_{name}")
+		for name, (ordinal, words, shared) in library["exports"].items():
+			lib_rows.append((ordinal, name, ENTRY_EXPORTED | (ENTRY_SHARED if shared else 0) | words << 3, found[name]))
+		lib_rows.sort()
+		exports = [(name, off) for _o, name, _f, off in lib_rows]
 	imports.sort(key=lambda r: (r[2], r[3]))
 	mod_names = []
 	for mn, _o, _s, _v in imports:
@@ -713,7 +861,10 @@ def pack(elf_data, module="SETUP", description="", stack=0x2000, heap=0x1000, re
 		b = name.encode("latin-1")
 		return bytes([len(b)]) + b + struct.pack("<H", ordinal)
 
-	resident = name_entry(module, 0) + b"".join(name_entry(n.upper(), i + 1) for i, (n, _o) in enumerate(exports)) + b"\0"
+	if library is not None:
+		resident = name_entry(module, 0) + b"".join(name_entry(n.upper(), o) for o, n, _f, _off in lib_rows) + b"\0"
+	else:
+		resident = name_entry(module, 0) + b"".join(name_entry(n.upper(), i + 1) for i, (n, _o) in enumerate(exports)) + b"\0"
 	nonres = (name_entry(description, 0) + b"\0") if description else b"\0"
 
 	imp_names = bytearray(b"\0")
@@ -722,13 +873,18 @@ def pack(elf_data, module="SETUP", description="", stack=0x2000, heap=0x1000, re
 		modref += struct.pack("<H", len(imp_names))
 		imp_names += bytes([len(n)]) + n.encode()
 
-	entry = bytearray()
-	for i in range(0, len(exports), 255):
-		chunk = exports[i : i + 255]
-		entry += bytes([len(chunk), 1])  # a bundle of fixed entries in segment 1
-		for _n, off in chunk:
-			entry += struct.pack("<BH", 0x03, off)
-	entry += b"\0\0"
+	if library is not None:
+		entry = library_entry_table([(o, f, off) for o, _n, f, off in lib_rows])
+	else:
+		entry = bytearray()
+		for i in range(0, len(exports), 255):
+			chunk = exports[i : i + 255]
+			entry += bytes([len(chunk), 1])  # a bundle of fixed entries in segment 1
+			for _n, off in chunk:
+				entry += struct.pack("<BH", 0x03, off)
+		entry += b"\0\0"
+	if len(entry) > 0xFFFF:
+		raise PackError("the entry table is over 64 KB")
 
 	# Layout. The MZ stub is 0x80 bytes, the NE header 0x40, then the tables, each directly after the last. The segment table lists the
 	# code segment 1, the data segment 2 and then code segments 3 and up; their contents follow the tables in that order.
@@ -756,19 +912,22 @@ def pack(elf_data, module="SETUP", description="", stack=0x2000, heap=0x1000, re
 	seg_table = b""
 	for n in table_order:
 		if n == DATA_SEG:
-			seg_table += struct.pack("<HHHH", file_off[n] >> FILE_SHIFT, len(dat), SEG_DATA | SEG_PRELOAD | SEG_RING3, len(dat))
+			# A library's data is moveable; the loader allocates it once, for every caller (single data).
+			seg_table += struct.pack("<HHHH", file_off[n] >> FILE_SHIFT, len(dat), SEG_DATA | SEG_PRELOAD | SEG_RING3 | (SEG_MOVEABLE if library is not None else 0), len(dat))
 		else:
 			seg_table += struct.pack("<HHHH", file_off[n] >> FILE_SHIFT, len(code_images[n]), segs[n].flags(), len(code_images[n]))
 
-	start_seg, start_ip = place("_start")
+	start_seg, start_ip = place(entry_symbol)
 	hdr = bytearray(0x40)
 	hdr[0:2] = b"NE"
 	hdr[2] = 5
 	hdr[3] = 1
 	struct.pack_into("<HH", hdr, 4, entry_tab - ne_off, len(entry))
 	struct.pack_into("<I", hdr, 8, 0)
-	struct.pack_into("<HHHH", hdr, 0x0C, NE_WINAPI | NE_MULTIPLEDATA, DATA_SEG, heap, stack)
-	struct.pack_into("<HHHH", hdr, 0x14, start_ip, start_seg, 0, DATA_SEG)
+	flags = NE_LIBRARY | NE_WINAPI | NE_SINGLEDATA if library is not None else NE_WINAPI | NE_MULTIPLEDATA
+	struct.pack_into("<HHHH", hdr, 0x0C, flags, DATA_SEG, heap, stack)
+	# A library has no task stack: SS:SP is zero and the stack size is zero.
+	struct.pack_into("<HHHH", hdr, 0x14, start_ip, start_seg, 0, 0 if library is not None else DATA_SEG)
 	struct.pack_into("<HHHH", hdr, 0x1C, len(table_order), len(mod_names), len(nonres), seg_tab - ne_off)
 	struct.pack_into("<HHHH", hdr, 0x24, res_tab - ne_off, resname_tab - ne_off, modref_tab - ne_off, impname_tab - ne_off)
 	struct.pack_into("<I", hdr, 0x2C, nonres_tab)
@@ -804,6 +963,8 @@ def pack(elf_data, module="SETUP", description="", stack=0x2000, heap=0x1000, re
 		"heap": heap,
 		"imports": len(imports),
 		"exports": [n for n, _o in exports],
+		"library": library is not None,
+		"ordinals": {n: o for o, n, _f, _off in lib_rows},
 		"modules": mod_names,
 		"relocs": sum(len(seg_relocs[n]) for n in numbers),
 		"resources": len(resources),
@@ -1007,8 +1168,8 @@ def write_map(path, info):
 
 def main():
 	args = sys.argv[1:]
-	opts = {"module": "SETUP", "description": "", "stack": 0x2000, "heap": 0x1000}
-	res_path = seg_path = map_path = None
+	opts = {}
+	res_path = seg_path = map_path = lib_path = None
 	try:
 		while args and args[0].startswith("--"):
 			o = args.pop(0)
@@ -1024,6 +1185,8 @@ def main():
 				seg_path = args.pop(0)
 			elif o == "--map":
 				map_path = args.pop(0)
+			elif o == "--library":
+				lib_path = args.pop(0)
 			else:
 				sys.exit("ne_pack: unknown option " + o + "\n" + USAGE)
 	except (IndexError, ValueError):
@@ -1035,8 +1198,9 @@ def main():
 		if seg_path:
 			with open(seg_path, encoding="utf-8") as f:
 				seg_cfg = json.load(f)
+		library = load_library(lib_path) if lib_path else None
 		with open(args[0], "rb") as f:
-			out, info = pack(f.read(), resources=load_resources(res_path), segments=seg_cfg, **opts)
+			out, info = pack(f.read(), resources=load_resources(res_path), segments=seg_cfg, library=library, **opts)
 	except PackError as e:
 		sys.exit("ne_pack: " + str(e))
 	with open(args[1], "wb") as f:
@@ -1047,6 +1211,8 @@ def main():
 	extra = ""
 	if len(info["segments"]) > 1:
 		extra = f"; {info['veneers']} call veneers, {info['stubs']} jump stubs, {len(info['slots'])} pointer slots"
+	if info["library"]:
+		extra += "; library, exports " + ", ".join(f"{n} @{o}" for n, o in sorted(info["ordinals"].items(), key=lambda kv: kv[1]))
 	print(
 		f"ne_pack: {args[1]}: {info['file']} bytes (code {info['code']} in segments {segs}{extra}; data {info['data']} + stack {info['stack']} + heap {info['heap']}, {info['imports']} imports, {info['resources']} resources)"
 	)

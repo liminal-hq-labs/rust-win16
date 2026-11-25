@@ -16,6 +16,7 @@ The build has three stages: `rustc` and `rust-lld` produce a 32-bit x86 ELF, `to
 - [Import stubs](#import-stubs)
 - [Entry point and exported procedures](#entry-point-and-exported-procedures)
 - [Resources](#resources)
+- [Building a library](#building-a-library)
 - [Size limits](#size-limits)
 - [Reading and testing the output](#reading-and-testing-the-output)
 
@@ -197,6 +198,40 @@ A window or dialog procedure is an exported far procedure that Windows calls wit
 
 A resource table entry stores its length in alignment units, so a resource whose length is not a multiple of 16 has to be padded, or Windows finds the file too short and a dialog silently fails to open. The padding means the true length is lost, so raw data starts with its exact length as a little-endian 32-bit number, and the program reads that first. `examples/setup` shows the read.
 
+## Building a library
+
+`--library MANIFEST.json` makes the packer write a DLL instead of a program. Nothing else about the pipeline changes: the same segment placement, veneers and selector fixups apply, and without the flag the output is byte for byte what it was. The mode is a packer feature only. The code that runs inside a library (`LibEntry`, the per-export stack switch) is not part of it, and no output has been loaded by a real Windows yet.
+
+```sh
+python3 tools/ne_pack.py --library examples/library/exports.json tiny.elf TINY.DLL
+```
+
+**The manifest** is a JSON object:
+
+| Key | Meaning |
+|---|---|
+| `module` | The module name, which the loader and the host's `.IMPORTS` use. `--module` overrides it |
+| `description` | The non-resident description. `--description` overrides it |
+| `heap` | The local heap size in bytes, 0 by default. 0 means the loader never calls `LocalInit`, and `--heap` overrides it |
+| `exports` | Export name to ordinal: a number, or `{ "ordinal": N, "words": W, "shared": false }`. `words` (0 to 31) is the parameter word count in the entry's flags and `shared` sets the shared-data bit, which the loader's prologue patching reads. Both default to off |
+| `gaps` | `"allow"` (the default) writes a bundle of unused entries for each missing ordinal. `"error"` demands that ordinals run from 1 without a gap |
+| `imports` | The Windows functions the library may import, as `"MODULE.Name"`. The default is `KERNEL.GlobalAlloc`, `GlobalLock`, `GlobalUnlock` and `GlobalFree`. A list replaces the default, and `[]` allows nothing |
+
+A host program imports by ordinal, so ordinals are written down once and never derived. The packer refuses two exports with one ordinal, a name that appears twice in the manifest, an export in the manifest with no `__w16exp_<Name>` symbol in the program, and a `__w16exp_` symbol the manifest does not list.
+
+**What it writes differently:**
+
+- The header flags are `0x8301`: library, uses the Windows API and single data, so the loader makes one data segment (DGROUP) for every caller. The data segment is moveable, since a fixed one lands in conventional memory.
+- The entry point is `LibEntry`, not `_start`. The loader calls it once, far, with DS = DGROUP, DI = the instance handle, CX = the heap size and ES:SI = the command line, and treats AX = 0 as a failed load.
+- The stack size is 0 and `SS:SP` is `0:0`. A library has no task stack; the code in it uses a private stack of its own in the data segment.
+- The entry table holds the exports as fixed entries in segment 1 at their manifest ordinals, flagged exported (`0x01`) with the parameter word count in the top five bits. The resident name table has the module name and every export (upper-cased, as for a program) with its ordinal, and the non-resident table has the description.
+- **`WEP`** is the exit procedure Windows calls when it unloads the library, with a word saying why. Its ordinal is 1 and it gets a resident name, since the loader finds it by name. If the manifest does not list it, it gets ordinal 1 (an error if another export holds that). If the program has no `__w16exp_WEP`, the packer adds one in segment 1 that does `mov ax, 1` and `retf 2`: it succeeds and does nothing.
+- Segments over 64 KB, and data plus heap over 64 KB, are refused as for a program.
+
+**The import rule.** A library runs on a private stack, so a call into Windows from it would run Windows on a stack it did not make, and one that yields would let another task into the library on the same stack. The packer therefore refuses any `__w16imp_` symbol that is not on the manifest's `imports` list, and the message names the function and the list. The library gets its memory from the host, which locks it and passes far pointers.
+
+**A worked example.** `examples/library/exports.json` is the manifest for the library `tests/test_library.py` assembles by hand: `LibEntry` returns 1, `Answer` returns 42, `ReadData` loads the data segment's selector through a fixup and reads a word, and `WEP` is the default. The test packs it, reads the result back with `tools/ne_dump.py` and compares it with `tests/golden/tiny.dll`. After a deliberate change to the output, `W16_UPDATE_GOLDEN=1 python3 -m unittest discover -s tests` rewrites the golden file; look at the diff of `ne_dump.py` output before committing it.
+
 ## Size limits
 
 | What | Limit |
@@ -206,6 +241,7 @@ A resource table entry stores its length in alignment units, so a resource whose
 | Code segments | 253 (1 and 3 to 254) |
 | Data, stack, heap and shadow stack | 64 KB together, in segment 2 |
 | Fixups per segment | 65,535 |
+| Library ordinals | 1 to 32,767; the data segment and the heap together 64 KB |
 | The file | 1 MB, which 16-byte alignment can address |
 
 ## Reading and testing the output
