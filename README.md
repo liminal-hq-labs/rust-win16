@@ -78,7 +78,8 @@ To add a program, add a `[[bin]]` to `Cargo.toml`, add its name to the loop in `
 - **Untested on real hardware.** Wine, DOSBox-X running a real Windows for Workgroups 3.11, and Windows ME in a virtual machine have run the examples. Windows 3.0 and a physical 286 or 386 have not.
 - **No allocator and no `core::fmt`.** The `alloc` crate builds, but nothing provides a global allocator, and formatting would cost tens of kilobytes of code.
 - **A small API surface.** 64 imports from KERNEL, USER and GDI. Add more to `tools/imports.tbl` and regenerate.
-- **Not done:** icons, DDE (so no Program Manager groups), DLLs, and more than one instance of a program.
+- **Libraries:** a Windows 3.x DLL can be written in Rust with the `w16dll` runtime (`docs/libraries.md`); it computes on far pointers and calls nothing in Windows.
+- **Not done:** icons, DDE (so no Program Manager groups), and more than one instance of a program.
 
 ## Testing
 
