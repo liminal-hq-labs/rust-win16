@@ -16,7 +16,7 @@ Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stu
 - Windows 3.0.
 - A general Win16 SDK: the import table is small and grows by need.
 - A C or C++ toolchain. Open Watcom already does that well.
-- DLLs and icons, for now.
+- Icons, for now.
 
 ## Components
 
@@ -32,8 +32,9 @@ Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stu
 | Checker | `tools/ne_check.py` | Decodes every code segment and fails on a branch that leaves its segment |
 | Fault lookup | `tools/ne_addr2sym.py` | A `segment:offset` from a fault box to a function, through the packer's map |
 | Dumper | `tools/ne_dump.py` | An independent NE reader |
-| Examples | `examples/{msgbox,hello,setup,bigseg}` | Programs built by `scripts/build.sh` |
-| Tests | `tests/test_ne_pack.py`, `tests/test_segments.py` | Packer, segment and generator tests |
+| Library runtime | `dll/src/lib.rs` | The `w16dll` crate: `LibEntry`, `WEP`, `export_dll!`, the private stack, the panic path and far-pointer helpers |
+| Examples | `examples/{msgbox,hello,setup,bigseg,dllhost,hellodll}` | Programs and a library built by `scripts/build.sh` (`hellodll` is built by the `w16dll` package) |
+| Tests | `tests/test_ne_pack.py`, `tests/test_segments.py`, `tests/test_library.py`, `tests/test_dll.py` | Packer, segment, library and generator tests |
 | Windows 3.11 harness | `scripts/run-w31.sh` | Runs a program on a Windows 3.11 tree you supply, under DOSBox-X, and counts passing runs |
 
 ## Behaviour
@@ -43,9 +44,9 @@ Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stu
 - Rust code runs on the 32-bit alias; Windows never does. Every API call goes through a generated stub that saves EBX, ESI, EDI and EBP, moves to the 16-bit stack for the far call, moves the alias to the data segment's current base if Windows moved it, moves back with ESP rebuilt from SP and reloads ES from DS.
 - A window or dialog procedure is wrapped by `export_proc!`, which loads DS and ES from SS, saves the same registers, moves to the alias around a Rust function taking `(hwnd, msg, wparam, lparam)` and returns on the stack segment it was called on.
 - The packer places code in segments (pinned sections in segment 1, then `.text.seg<N>` section names, then `--segments` patterns, then an automatic fill by budget), rewrites each call across segments to a veneer and a return trampoline with far fixups, sends tail calls and calls through function pointers into other segments through a shadow return stack in the data segment, gives each address-taken function a slot at the same offset in every segment, and sends every far entry into a load-on-call or discardable segment through a gate in segment 1. [docs/packer.md](docs/packer.md) describes each.
-- With `--library`, the packer writes a DLL instead: single data (one moveable data segment shared by all callers), `LibEntry` as the entry point, no stack, exports at the ordinals the manifest fixes, `WEP` at ordinal 1 by default, and no Windows imports beyond the manifest's allow-list. EXE output is unchanged. The runtime a library needs (`LibEntry`, the stack switch per export) is not part of the packer.
-- A panic shows a message box and ends the task.
-- The packer fails with a message when the ELF is not a 32-bit x86 ELF, a function is over 64 KB, a segment cannot be brought under 64 KB, data plus stack plus heap (plus the shadow stack) is over 64 KB, a reference to another segment cannot be made safe (an address inside a function taken from another segment, a relative reference that is not a call or a jump, a 16-bit call), an exported procedure is outside segment 1, a library's exports and its manifest disagree or share an ordinal, a library imports a Windows function that is not on its allow-list, a symbol is undefined, or the segments file is malformed. Each message names the symbol or the setting.
+- With `--library`, the packer writes a DLL instead: single data (one moveable data segment shared by all callers), `LibEntry` as the entry point, no stack, exports at the ordinals the manifest fixes, `WEP` at ordinal 1 by default, and no Windows imports beyond the manifest's allow-list. EXE output is unchanged.
+- A library defines its exports with `export_dll!(Name, rust_fn, words)` from the `w16dll` crate (`dll/`), which also provides `LibEntry`, `WEP` and the panic handler. `LibEntry` stores the instance handle, paints the private stack and returns 1. An export's thunk saves the caller's registers, loads DS from the library's data segment, refuses the call when the library is poisoned (status 7) or busy (2), makes the 32-bit alias of the data segment on the first call (status 6 when DPMI refuses) and moves it to the segment's base at every entry, copies the Pascal arguments (one zero-extended `u32` per word, first word first) to the top of a 6,144-byte private stack inside the data segment, switches to it and calls the Rust function, then returns far with the result in DX:AX. A panic poisons the library and returns status 7. `WEP` frees the alias and returns 1. A library calls nothing in Windows.
+- A row `DYN LIBRARY ORDINAL Name ARGS RET` in `tools/imports.tbl` makes a stub that calls a library the program loaded itself, through a far pointer in the 4-byte slot `__w16dyn_<Name>` that `bind_<Name>` fills with the result of `GetProcAddress`; an empty slot returns `0xFFFF`. `docs/libraries.md` has the rules and the measurements.is not a 32-bit x86 ELF, a function is over 64 KB, a segment cannot be brought under 64 KB, data plus stack plus heap (plus the shadow stack) is over 64 KB, a reference to another segment cannot be made safe (an address inside a function taken from another segment, a relative reference that is not a call or a jump, a 16-bit call), an exported procedure is outside segment 1, a library's exports and its manifest disagree or share an ordinal, a library imports a Windows function that is not on its allow-list, a symbol is undefined, or the segments file is malformed. Each message names the symbol or the setting.
 
 ## Interfaces
 
@@ -57,11 +58,11 @@ Build Windows 3.x programs in Rust: a code16 target, an NE packer and import stu
 
 **Checker.** `python3 tools/ne_check.py file.exe` (needs `objdump`).
 
-**Windows 3.11 harness.** `W31_TREE=DIR [DOSBOX_IMAGE=IMAGE] [OUT=DIR] [WAIT=S] scripts/run-w31.sh [--runs N] [--log NAME] PROGRAM.EXE [ARGUMENTS...]`.
+**Windows 3.11 harness.** `W31_TREE=DIR [DOSBOX_IMAGE=IMAGE] [OUT=DIR] [WAIT=S] [W31_NAME=PREFIX] scripts/run-w31.sh [--runs N] [--log NAME] [--with FILE]... [--system FILE]... PROGRAM.EXE [ARGUMENTS...]`. `--with` puts a file beside the program and `--system` in `C:\WINDOWS\SYSTEM`.
 
 **Resources.** A JSON object with `dialogs`, `strings` and `rcdata`. Dialog IDs, string IDs and raw-data IDs are integers; `rcdata` entries name a file relative to the JSON. Raw data starts with its exact length as a little-endian 32-bit number.
 
-**Import table.** One row per import in `tools/imports.tbl`: `MODULE ORDINAL Name ARGS RET`, where `ARGS` uses `w`, `l`, `p` and `f` and `RET` is `w`, `l` or `v`. `python3 tools/gen_imports.py [--check-spec DIR] tools/imports.tbl src/imports.rs` writes the stubs and checks them against Wine's spec files.
+**Import table.** One row per import in `tools/imports.tbl`: `MODULE ORDINAL Name ARGS RET`, where `ARGS` uses `w`, `l`, `p` and `f` and `RET` is `w`, `l` or `v`, or `DYN LIBRARY ORDINAL Name ARGS RET` for a dynamic import. `python3 tools/gen_imports.py [--check-spec DIR] tools/imports.tbl src/imports.rs` writes the stubs and checks them against Wine's spec files.
 
 **Dumper.** `python3 tools/ne_dump.py [--json] file.exe`.
 

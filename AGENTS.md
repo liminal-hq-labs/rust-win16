@@ -95,6 +95,7 @@ Use `#` comments for shell, YAML, TOML and Dockerfiles, and an XML comment for S
 - **INITTASK is first.** `_start` runs INITTASK before any other instruction.
 - **Stay in the limits.** Code in up to 253 segments of 64 KB, one data segment of 64 KB. Exported procedures, import stubs and `.text.w16fixed*` helpers live in segment 1. Every far entry into a load-on-call or discardable segment goes through the gate; do not add a far jump that bypasses it.
 - **Test against a second reader.** A packer change comes with a test that checks the result with `tools/ne_dump.py` (and `tools/ne_check.py` for code it rewrites), and a change to a register or stack rule is checked on Windows 3.11 (`scripts/run-w31.sh`, many runs) or says plainly that it was not.
+- **Libraries run on a private stack.** In a Win16 DLL SS is the caller's and DS is the library's, so Rust never runs on the caller's stack: every export is an `export_dll!` thunk that moves to the private stack on a 32-bit alias of the library's data segment, checks the alias against the segment's base at every entry and keeps DS around every `INT 31h` (Wine does not). A library calls nothing in Windows and never yields. A change to the thunk is checked on Windows 3.11 with `examples/dllhost` (30 runs), or says plainly that it was not.
 - **No Microsoft files.** Nothing from a Windows install goes in the repository.
 - **SPEC first.** A change to behaviour, interfaces, settings or defaults updates `SPEC.md` in the same change.
 
@@ -104,6 +105,7 @@ Use `#` comments for shell, YAML, TOML and Dockerfiles, and an XML comment for S
 - `python3 -m unittest discover -s tests -v` — packer, segments and stub generator
 - `python3 tools/ne_check.py out/BIGSEG.EXE` — decode the packed code (needs `objdump`)
 - `W31_TREE=DIR DOSBOX_IMAGE=IMAGE bash scripts/run-w31.sh --runs 30 out/BIGSEG.EXE /exit` — Windows 3.11 under DOSBox-X, local only
+- `W31_TREE=DIR DOSBOX_IMAGE=IMAGE bash scripts/run-w31.sh --runs 30 --log DLLHOST.LOG --with out/HELLODLL.DLL out/DLLHOST.EXE /exit` — the library runtime on Windows 3.11 (modes in `docs/libraries.md`)
 - `CARGO_TARGET_DIR=/tmp/w16-target OUT_DIR=/tmp/w16-out bash scripts/build.sh`, then `file` on the output (expect `NE`) — the examples build and pack
 - `cargo fmt --all -- --check` — Rust formatting
 - `bash scripts/check-banner.sh` — hero banner rules and text fit (needs `xmllint`, `rsvg-convert`, `python3` and Chromium; `--shots DIR` writes frames to look at)
@@ -126,11 +128,12 @@ README.md SPEC.md AGENTS.md CLAUDE.md LICENSE-APACHE LICENSE-MIT
 .editorconfig .markdownlint.jsonc .gitignore rustfmt.toml rust-toolchain.toml
 Cargo.toml Cargo.lock win16.json link.ld .cargo/config.toml
 src/           runtime crate: lib.rs, generated imports.rs, wizard.rs, probe.rs
-examples/      msgbox, hello, setup and bigseg, each with its resources or segments file, and library (a DLL manifest)
+dll/           w16dll, the library runtime: LibEntry, WEP, export_dll!, the private stack
+examples/      msgbox, hello, setup, bigseg, dllhost and hellodll (a library), each with its resources, segments or manifest file, and library (a DLL manifest for the packer's tests)
 tools/         ne_pack.py, ne_dump.py, ne_check.py, ne_addr2sym.py, rust_demangle.py, gen_imports.py and imports.tbl
-tests/         packer, library, segment and stub generator tests (golden files in tests/golden)
+tests/         packer, library, segment, library runtime tooling and stub generator tests (golden files in tests/golden)
 assets/        hero banner
-docs/          packer explainer and decisions
+docs/          packer and library explainers, and decisions
 scripts/       build, Windows 3.11 harness, header check, banner check and its Chromium text-fit harness
 .github/       CI workflow, issue and pull request templates, release notes configuration
 ```

@@ -6,6 +6,10 @@
 #
 # usage: tools/gen_imports.py [--check-spec DIR] tools/imports.tbl src/imports.rs
 #
+# A row that starts with `DYN` is a dynamic import, a function in a library the program loads itself: `DYN MODULE ORDINAL Name ARGS RET`.
+# Its stub calls through a 4-byte slot in the data segment, `__w16dyn_<Name>`, that the program fills with the far pointer
+# `GetProcAddress` returned (`bind_<Name>`), and returns 0xFFFF without calling when the slot is empty. Nothing is imported by the loader.
+#
 # Rust calls a stub with the C convention (a 32-bit near call, 4-byte arguments). The stub rebuilds the arguments as the Pascal convention
 # wants them (16-bit words, longs as two words, pointers as seg:off), makes the far call and fixes the result up in EAX. The stub's far
 # call operand carries a global label `__w16imp_<MODULE>_<ordinal>_<Name>`; the packer reads those labels to write the import fixups.
@@ -21,16 +25,23 @@ def parse_table(path):
 			line = line.split("#", 1)[0].strip()
 			if not line:
 				continue
-			mod, ordinal, name, args, ret = line.split()
+			fields = line.split()
+			dyn = fields[0] == "DYN"
+			if dyn:
+				fields = fields[1:]
+			if len(fields) != 5:
+				raise SystemExit("bad row: " + line)
+			mod, ordinal, name, args, ret = fields
 			if args == "-":
 				args = ""
 			if ret not in ("w", "l", "v") or not re.fullmatch(r"[wlpf]*", args):
 				raise SystemExit("bad row: " + line)
-			rows.append((mod, int(ordinal), name, args, ret))
+			rows.append((("DYN:" if dyn else "") + mod, int(ordinal), name, args, ret))
 	return rows
 
 
 def stub(mod, ordinal, name, args, ret):
+	dyn = mod.startswith("DYN:")
 	n = len(args)
 	out = []
 	out.append(f".section .text.imp_{name},\"ax\"")
@@ -59,10 +70,25 @@ def stub(mod, ordinal, name, args, ret):
 	# off interrupts until after the next instruction, so ESP is clean before anything can use it.
 	out.append("mov ss, word ptr [__w16_ss16]")
 	out.append("movzx esp, sp")
-	out.append(".byte 0x9a")
-	out.append(f".globl __w16imp_{mod}_{ordinal}_{name}")
-	out.append(f"__w16imp_{mod}_{ordinal}_{name}:")
-	out.append(".word 0, 0")
+	if dyn:
+		# A far call through the slot (FF /3, a 16-bit absolute address). An empty slot has a zero selector: the arguments are dropped and
+		# the stub returns 0xFFFF.
+		words = sum(2 if a in "lpf" else 1 for a in args)
+		out.append(f"cmp word ptr [__w16dyn_{name}+2], 0")
+		out.append("jz 5f")
+		out.append(".byte 0xff, 0x1e")
+		out.append(f".word __w16dyn_{name}")
+		out.append("jmp 6f")
+		out.append("5:")
+		out.append(f"add sp, {2 * words}")
+		out.append("mov ax, 0xffff")
+		out.append("xor dx, dx")
+		out.append("6:")
+	else:
+		out.append(".byte 0x9a")
+		out.append(f".globl __w16imp_{mod}_{ordinal}_{name}")
+		out.append(f"__w16imp_{mod}_{ordinal}_{name}:")
+		out.append(".word 0, 0")
 	# Windows may have moved the data segment: move the 32-bit alias with it (src/lib.rs). Then back to the 32-bit stack. Windows may leave the high half of ESP as it likes, and an interrupt taken on a 16-bit stack restores
 	# only SP, so ESP is rebuilt from SP. Windows does not keep ES, which Rust's string instructions (`rep movs`) take as the data segment.
 	out.append(".byte 0x66, 0xe8")
@@ -97,9 +123,15 @@ def render(rows):
 	o.append("")
 	for mod, ordinal, name, args, ret in rows:
 		lines = stub(mod, ordinal, name, args, ret)
-		o.append(f"// {mod}.{ordinal} {name}")
+		dyn = mod.startswith("DYN:")
+		o.append(f"// {mod[4:]}.{ordinal} {name} (dynamic)" if dyn else f"// {mod}.{ordinal} {name}")
 		o.append("global_asm!(")
 		o.append("\t\".code16\",")
+		if dyn:
+			o.append(f"\t\".section .data.w16dyn,\\\"aw\\\"\",")
+			o.append("\t\".balign 2\",")
+			o.append(f"\t\".globl __w16dyn_{name}\",")
+			o.append(f"\t\"__w16dyn_{name}: .long 0\",")
 		for ln in lines:
 			o.append("\t\"" + ln.replace("\"", "\\\"") + "\",")
 		o.append(");")
@@ -108,8 +140,19 @@ def render(rows):
 	for mod, ordinal, name, args, ret in rows:
 		params = ", ".join(f"a{i}: u32" for i in range(len(args)))
 		o.append(f"\tpub fn {name}({params}) -> u32;")
+		if mod.startswith("DYN:"):
+			o.append(f"\tstatic mut __w16dyn_{name}: u32;")
 	o.append("}")
 	o.append("")
+	for mod, ordinal, name, args, ret in rows:
+		if mod.startswith("DYN:"):
+			o.append(f"/// The ordinal of `{name}` in the library `{mod[4:]}`.")
+			o.append(f"pub const {name}_ORDINAL: u32 = {ordinal};")
+			o.append(f"/// Points the stub `{name}` at the far address `GetProcAddress` returned; 0 unbinds it.")
+			o.append(f"pub fn bind_{name}(far: u32) {{")
+			o.append(f"\tunsafe {{ core::ptr::addr_of_mut!(__w16dyn_{name}).write_volatile(far) }}")
+			o.append("}")
+			o.append("")
 	return "\n".join(o)
 
 
@@ -117,6 +160,8 @@ def check_spec(rows, spec_dir):
 	files = {"KERNEL": "krnl.spec", "USER": "user.exe16.spec", "GDI": "gdi.exe16.spec"}
 	bad = 0
 	for mod, ordinal, name, args, ret in rows:
+		if mod not in files:
+			continue  # a library of the program's own, or a dynamic import: Wine has no spec for it
 		with open(os.path.join(spec_dir, files[mod]), encoding="utf-8") as f:
 			text = f.read()
 		m = re.search(rf"^{ordinal}\s+\S+(?:\s+-\S+)*\s+(\w+)\(([^)]*)\)", text, re.M)

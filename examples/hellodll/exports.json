@@ -1,0 +1,19 @@
+{
+	"module": "HELLODLL",
+	"description": "Rust Win16 hello library",
+	"heap": 0,
+	"gaps": "error",
+	"imports": [],
+	"exports": {
+		"WEP": 1,
+		"Info": { "ordinal": 2, "words": 2 },
+		"Add": { "ordinal": 3, "words": 2 },
+		"FillFar": { "ordinal": 4, "words": 4 },
+		"Poison": { "ordinal": 5, "words": 0 },
+		"Counter": { "ordinal": 6, "words": 0 },
+		"Probe": { "ordinal": 7, "words": 2 },
+		"EspWatch": { "ordinal": 8, "words": 1 },
+		"Cross": { "ordinal": 9, "words": 2 },
+		"DsSel": { "ordinal": 10, "words": 0 }
+	}
+}

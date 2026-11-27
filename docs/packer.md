@@ -171,6 +171,8 @@ Fixups that are not additive form chains: Windows reads the offset of the next f
 
 `RET` is `w` (AX, zero-extended), `l` (DX:AX folded into EAX) or `v` (nothing).
 
+A row that starts with `DYN` is a dynamic import, `DYN LIBRARY ORDINAL Name ARGS RET`, for a library the program loads with `LoadLibrary`. Its stub takes the same arguments and makes the same stack switches, but calls through a 4-byte slot in the data segment, `__w16dyn_<Name>`, with `call far [slot]` instead of a loader-patched far call, and it carries no `__w16imp_` label, so the loader never sees it. A slot whose selector is zero drops the arguments and returns `0xFFFF`. The generated Rust has `<Name>_ORDINAL` and `bind_<Name>(far)`; the program calls `bind_<Name>(GetProcAddress(...))` after loading. `--check-spec` skips these rows.
+
 `tools/gen_imports.py` writes `src/imports.rs`: a `global_asm!` stub and an `extern "C"` declaration per row. Rust calls a stub with a C-style 32-bit near call and 4-byte arguments. The stub saves EBX, ESI, EDI and EBP, rebuilds the arguments as the Pascal convention wants them, moves to the 16-bit stack, makes the far call through the labelled operand, syncs the stack alias and moves back to it, reloads ES from DS and returns the result in EAX. The stubs live in segment 1, so a call from another segment goes through a veneer.
 
 To add an API, add a row to `tools/imports.tbl`, run `bash scripts/build.sh --regen`, and check the row against Wine:
@@ -200,7 +202,7 @@ A resource table entry stores its length in alignment units, so a resource whose
 
 ## Building a library
 
-`--library MANIFEST.json` makes the packer write a DLL instead of a program. Nothing else about the pipeline changes: the same segment placement, veneers and selector fixups apply, and without the flag the output is byte for byte what it was. The mode is a packer feature only. The code that runs inside a library (`LibEntry`, the per-export stack switch) is not part of it, and no output has been loaded by a real Windows yet.
+`--library MANIFEST.json` makes the packer write a DLL instead of a program. Nothing else about the pipeline changes: the same segment placement, veneers and selector fixups apply, and without the flag the output is byte for byte what it was. The runtime that runs inside a library (`LibEntry`, `WEP`, the per-export stack switch) is the `w16dll` crate, described in [libraries.md](libraries.md), and `examples/hellodll` has been loaded by Windows for Workgroups 3.11.
 
 ```sh
 python3 tools/ne_pack.py --library examples/library/exports.json tiny.elf TINY.DLL
@@ -228,7 +230,7 @@ A host program imports by ordinal, so ordinals are written down once and never d
 - **`WEP`** is the exit procedure Windows calls when it unloads the library, with a word saying why. Its ordinal is 1 and it gets a resident name, since the loader finds it by name. If the manifest does not list it, it gets ordinal 1 (an error if another export holds that). If the program has no `__w16exp_WEP`, the packer adds one in segment 1 that does `mov ax, 1` and `retf 2`: it succeeds and does nothing.
 - Segments over 64 KB, and data plus heap over 64 KB, are refused as for a program.
 
-**The import rule.** A library runs on a private stack, so a call into Windows from it would run Windows on a stack it did not make, and one that yields would let another task into the library on the same stack. The packer therefore refuses any `__w16imp_` symbol that is not on the manifest's `imports` list, and the message names the function and the list. The library gets its memory from the host, which locks it and passes far pointers.
+**The import rule.** A library runs on a private stack (see [libraries.md](libraries.md)), so a call into Windows from it would run Windows on a stack it did not make, and one that yields would let another task into the library on the same stack. The packer therefore refuses any `__w16imp_` symbol that is not on the manifest's `imports` list, and the message names the function and the list. The library gets its memory from the host, which locks it and passes far pointers.
 
 **A worked example.** `examples/library/exports.json` is the manifest for the library `tests/test_library.py` assembles by hand: `LibEntry` returns 1, `Answer` returns 42, `ReadData` loads the data segment's selector through a fixup and reads a word, and `WEP` is the default. The test packs it, reads the result back with `tools/ne_dump.py` and compares it with `tests/golden/tiny.dll`. After a deliberate change to the output, `W16_UPDATE_GOLDEN=1 python3 -m unittest discover -s tests` rewrites the golden file; look at the diff of `ne_dump.py` output before committing it.
 

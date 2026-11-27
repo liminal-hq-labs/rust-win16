@@ -395,6 +395,84 @@ pub fn dos_mkdir(path: *const u8) -> u16 {
 	if cf == 0 { 0 } else { ax }
 }
 
+/// The current drive (0 for A:) and the current directory of that drive without its drive letter or leading backslash, as DOS keeps
+/// them for the running task: INT 21h functions 19h and 47h. Returns the drive, or `None` when DOS refuses. `buf` takes 64 bytes.
+pub fn dos_current_dir(buf: *mut u8) -> Option<u32> {
+	let drive: u16;
+	let ax: u16;
+	let cf: u8;
+	unsafe {
+		asm!(
+			"push ebx",
+			"push esi",
+			"push edi",
+			"mov ss, word ptr [__w16_ss16]",
+			"movzx esp, sp",
+			"int 0x21",
+			"movzx ebx, al",
+			"mov si, dx",
+			"mov ah, 0x47",
+			"xor dl, dl",
+			"int 0x21",
+			"setc cl",
+			".byte 0x66, 0xe8",
+			".long w16_sync_alias - . - 4",
+			"mov ss, word ptr [__w16_ss32]",
+			"movzx esp, sp",
+			"mov eax, ebx",
+			"pop edi",
+			"pop esi",
+			"pop ebx",
+			"push ds",
+			"pop es",
+			inout("ax") 0x1900u16 => drive,
+			inout("dx") buf as u16 => _,
+			out("cl") cf,
+			options(nostack),
+		);
+		ax = drive;
+	}
+	if cf == 0 { Some(ax as u32) } else { None }
+}
+
+/// Makes `path` (a NUL-terminated string, with a drive letter or not) the current directory, and its drive the current drive:
+/// INT 21h functions 0Eh and 3Bh. Returns 0 on success or the DOS error code.
+pub fn dos_set_dir(path: *const u8, drive: u8) -> u16 {
+	let ax: u16;
+	let cf: u8;
+	unsafe {
+		asm!(
+			"push ebx",
+			"push esi",
+			"push edi",
+			"mov ss, word ptr [__w16_ss16]",
+			"movzx esp, sp",
+			"mov bx, dx",
+			"mov dl, cl",
+			"mov ah, 0x0e",
+			"int 0x21",
+			"mov dx, bx",
+			"mov ah, 0x3b",
+			"int 0x21",
+			"setc cl",
+			".byte 0x66, 0xe8",
+			".long w16_sync_alias - . - 4",
+			"mov ss, word ptr [__w16_ss32]",
+			"movzx esp, sp",
+			"pop edi",
+			"pop esi",
+			"pop ebx",
+			"push ds",
+			"pop es",
+			inout("ax") 0u16 => ax,
+			inout("dx") path as u16 => _,
+			inout("cl") drive => cf,
+			options(nostack),
+		);
+	}
+	if cf == 0 { 0 } else { ax }
+}
+
 // A small text buffer for the result log. There is no `core::fmt`, which would cost tens of kilobytes of code.
 pub struct Log {
 	buf: [u8; 3072],

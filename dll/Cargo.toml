@@ -1,0 +1,20 @@
+# The Win16 library runtime: `LibEntry`, `WEP`, the export thunk with its private stack and the panic path. Built for `win16.json`.
+#
+# (c) Copyright 2026 Liminal HQ, Scott Morris
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+
+[package]
+name = "w16dll"
+version = "0.0.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Build Windows 3.x DLLs in Rust: the library runtime for rust-win16"
+publish = false
+
+[lib]
+name = "w16dll"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hellodll"
+path = "../examples/hellodll/main.rs"
