@@ -13,6 +13,7 @@ ENTRY(_start)
 SECTIONS {
   .data 0 : {
     KEEP(*(.data.00_reserved))
+    KEEP(*(.data.w16keep.*))
     *(.rodata .rodata.*)
     *(.data .data.*)
     *(.bss .bss.*)

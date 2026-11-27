@@ -299,6 +299,38 @@ global_asm!(
 	".byte 0x66, 0xc3",
 );
 
+// KERNEL.48 GetModuleUsage
+global_asm!(
+	".code16",
+	".section .text.imp_GetModuleUsage,\"ax\"",
+	".globl GetModuleUsage",
+	"GetModuleUsage:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_48_GetModuleUsage",
+	"__w16imp_KERNEL_48_GetModuleUsage:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
 // KERNEL.49 GetModuleFileName
 global_asm!(
 	".code16",
@@ -327,6 +359,75 @@ global_asm!(
 	"push ds",
 	"pop es",
 	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.47 GetModuleHandle
+global_asm!(
+	".code16",
+	".section .text.imp_GetModuleHandle,\"ax\"",
+	".globl GetModuleHandle",
+	"GetModuleHandle:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push ds",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_47_GetModuleHandle",
+	"__w16imp_KERNEL_47_GetModuleHandle:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.50 GetProcAddress
+global_asm!(
+	".code16",
+	".section .text.imp_GetProcAddress,\"ax\"",
+	".globl GetProcAddress",
+	"GetProcAddress:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"push word ptr [bp+14]",
+	"push word ptr [bp+12]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_50_GetProcAddress",
+	"__w16imp_KERNEL_50_GetProcAddress:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"shl edx, 16",
+	"or eax, edx",
 	"pop edi",
 	"pop esi",
 	"pop ebx",
@@ -895,6 +996,70 @@ global_asm!(
 	".byte 0x66, 0xc3",
 );
 
+// KERNEL.95 LoadLibrary
+global_asm!(
+	".code16",
+	".section .text.imp_LoadLibrary,\"ax\"",
+	".globl LoadLibrary",
+	"LoadLibrary:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push ds",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_95_LoadLibrary",
+	"__w16imp_KERNEL_95_LoadLibrary:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.96 FreeLibrary
+global_asm!(
+	".code16",
+	".section .text.imp_FreeLibrary,\"ax\"",
+	".globl FreeLibrary",
+	"FreeLibrary:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_96_FreeLibrary",
+	"__w16imp_KERNEL_96_FreeLibrary:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
 // KERNEL.107 SetErrorMode
 global_asm!(
 	".code16",
@@ -953,6 +1118,138 @@ global_asm!(
 	"movzx eax, ax",
 	"shl edx, 16",
 	"or eax, edx",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.166 WinExec
+global_asm!(
+	".code16",
+	".section .text.imp_WinExec,\"ax\"",
+	".globl WinExec",
+	"WinExec:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push ds",
+	"push word ptr [bp+8]",
+	"push word ptr [bp+12]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_166_WinExec",
+	"__w16imp_KERNEL_166_WinExec:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.169 GetFreeSpace
+global_asm!(
+	".code16",
+	".section .text.imp_GetFreeSpace,\"ax\"",
+	".globl GetFreeSpace",
+	"GetFreeSpace:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_169_GetFreeSpace",
+	"__w16imp_KERNEL_169_GetFreeSpace:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"shl edx, 16",
+	"or eax, edx",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.175 AllocSelector
+global_asm!(
+	".code16",
+	".section .text.imp_AllocSelector,\"ax\"",
+	".globl AllocSelector",
+	"AllocSelector:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_175_AllocSelector",
+	"__w16imp_KERNEL_175_AllocSelector:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// KERNEL.176 FreeSelector
+global_asm!(
+	".code16",
+	".section .text.imp_FreeSelector,\"ax\"",
+	".globl FreeSelector",
+	"FreeSelector:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_KERNEL_176_FreeSelector",
+	"__w16imp_KERNEL_176_FreeSelector:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
 	"pop edi",
 	"pop esi",
 	"pop ebx",
@@ -1053,6 +1350,39 @@ global_asm!(
 	"movzx esp, sp",
 	"push ds",
 	"pop es",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// USER.13 GetTickCount
+global_asm!(
+	".code16",
+	".section .text.imp_GetTickCount,\"ax\"",
+	".globl GetTickCount",
+	"GetTickCount:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	".byte 0x9a",
+	".globl __w16imp_USER_13_GetTickCount",
+	"__w16imp_USER_13_GetTickCount:",
+	".word 0, 0",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"shl edx, 16",
+	"or eax, edx",
 	"pop edi",
 	"pop esi",
 	"pop ebx",
@@ -2300,6 +2630,394 @@ global_asm!(
 	".byte 0x66, 0xc3",
 );
 
+// HELLODLL.2 HelloInfo (dynamic)
+global_asm!(
+	".code16",
+	".section .data.w16dyn,\"aw\"",
+	".balign 2",
+	".globl __w16dyn_HelloInfo",
+	"__w16dyn_HelloInfo: .long 0",
+	".section .text.imp_HelloInfo,\"ax\"",
+	".globl HelloInfo",
+	"HelloInfo:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push ds",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	"cmp word ptr [__w16dyn_HelloInfo+2], 0",
+	"jz 5f",
+	".byte 0xff, 0x1e",
+	".word __w16dyn_HelloInfo",
+	"jmp 6f",
+	"5:",
+	"add sp, 4",
+	"mov ax, 0xffff",
+	"xor dx, dx",
+	"6:",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// HELLODLL.3 HelloAdd (dynamic)
+global_asm!(
+	".code16",
+	".section .data.w16dyn,\"aw\"",
+	".balign 2",
+	".globl __w16dyn_HelloAdd",
+	"__w16dyn_HelloAdd: .long 0",
+	".section .text.imp_HelloAdd,\"ax\"",
+	".globl HelloAdd",
+	"HelloAdd:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"push word ptr [bp+12]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	"cmp word ptr [__w16dyn_HelloAdd+2], 0",
+	"jz 5f",
+	".byte 0xff, 0x1e",
+	".word __w16dyn_HelloAdd",
+	"jmp 6f",
+	"5:",
+	"add sp, 4",
+	"mov ax, 0xffff",
+	"xor dx, dx",
+	"6:",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"shl edx, 16",
+	"or eax, edx",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// HELLODLL.4 HelloFillFar (dynamic)
+global_asm!(
+	".code16",
+	".section .data.w16dyn,\"aw\"",
+	".balign 2",
+	".globl __w16dyn_HelloFillFar",
+	"__w16dyn_HelloFillFar: .long 0",
+	".section .text.imp_HelloFillFar,\"ax\"",
+	".globl HelloFillFar",
+	"HelloFillFar:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+10]",
+	"push word ptr [bp+8]",
+	"push word ptr [bp+12]",
+	"push word ptr [bp+16]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	"cmp word ptr [__w16dyn_HelloFillFar+2], 0",
+	"jz 5f",
+	".byte 0xff, 0x1e",
+	".word __w16dyn_HelloFillFar",
+	"jmp 6f",
+	"5:",
+	"add sp, 8",
+	"mov ax, 0xffff",
+	"xor dx, dx",
+	"6:",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// HELLODLL.5 HelloPoison (dynamic)
+global_asm!(
+	".code16",
+	".section .data.w16dyn,\"aw\"",
+	".balign 2",
+	".globl __w16dyn_HelloPoison",
+	"__w16dyn_HelloPoison: .long 0",
+	".section .text.imp_HelloPoison,\"ax\"",
+	".globl HelloPoison",
+	"HelloPoison:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	"cmp word ptr [__w16dyn_HelloPoison+2], 0",
+	"jz 5f",
+	".byte 0xff, 0x1e",
+	".word __w16dyn_HelloPoison",
+	"jmp 6f",
+	"5:",
+	"add sp, 0",
+	"mov ax, 0xffff",
+	"xor dx, dx",
+	"6:",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// HELLODLL.6 HelloCounter (dynamic)
+global_asm!(
+	".code16",
+	".section .data.w16dyn,\"aw\"",
+	".balign 2",
+	".globl __w16dyn_HelloCounter",
+	"__w16dyn_HelloCounter: .long 0",
+	".section .text.imp_HelloCounter,\"ax\"",
+	".globl HelloCounter",
+	"HelloCounter:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	"cmp word ptr [__w16dyn_HelloCounter+2], 0",
+	"jz 5f",
+	".byte 0xff, 0x1e",
+	".word __w16dyn_HelloCounter",
+	"jmp 6f",
+	"5:",
+	"add sp, 0",
+	"mov ax, 0xffff",
+	"xor dx, dx",
+	"6:",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"shl edx, 16",
+	"or eax, edx",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// HELLODLL.7 HelloProbe (dynamic)
+global_asm!(
+	".code16",
+	".section .data.w16dyn,\"aw\"",
+	".balign 2",
+	".globl __w16dyn_HelloProbe",
+	"__w16dyn_HelloProbe: .long 0",
+	".section .text.imp_HelloProbe,\"ax\"",
+	".globl HelloProbe",
+	"HelloProbe:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push ds",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	"cmp word ptr [__w16dyn_HelloProbe+2], 0",
+	"jz 5f",
+	".byte 0xff, 0x1e",
+	".word __w16dyn_HelloProbe",
+	"jmp 6f",
+	"5:",
+	"add sp, 4",
+	"mov ax, 0xffff",
+	"xor dx, dx",
+	"6:",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// HELLODLL.8 HelloEspWatch (dynamic)
+global_asm!(
+	".code16",
+	".section .data.w16dyn,\"aw\"",
+	".balign 2",
+	".globl __w16dyn_HelloEspWatch",
+	"__w16dyn_HelloEspWatch: .long 0",
+	".section .text.imp_HelloEspWatch,\"ax\"",
+	".globl HelloEspWatch",
+	"HelloEspWatch:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	"cmp word ptr [__w16dyn_HelloEspWatch+2], 0",
+	"jz 5f",
+	".byte 0xff, 0x1e",
+	".word __w16dyn_HelloEspWatch",
+	"jmp 6f",
+	"5:",
+	"add sp, 2",
+	"mov ax, 0xffff",
+	"xor dx, dx",
+	"6:",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// HELLODLL.9 HelloCross (dynamic)
+global_asm!(
+	".code16",
+	".section .data.w16dyn,\"aw\"",
+	".balign 2",
+	".globl __w16dyn_HelloCross",
+	"__w16dyn_HelloCross: .long 0",
+	".section .text.imp_HelloCross,\"ax\"",
+	".globl HelloCross",
+	"HelloCross:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"push word ptr [bp+8]",
+	"push word ptr [bp+12]",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	"cmp word ptr [__w16dyn_HelloCross+2], 0",
+	"jz 5f",
+	".byte 0xff, 0x1e",
+	".word __w16dyn_HelloCross",
+	"jmp 6f",
+	"5:",
+	"add sp, 4",
+	"mov ax, 0xffff",
+	"xor dx, dx",
+	"6:",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"shl edx, 16",
+	"or eax, edx",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
+// HELLODLL.10 HelloDsSel (dynamic)
+global_asm!(
+	".code16",
+	".section .data.w16dyn,\"aw\"",
+	".balign 2",
+	".globl __w16dyn_HelloDsSel",
+	"__w16dyn_HelloDsSel: .long 0",
+	".section .text.imp_HelloDsSel,\"ax\"",
+	".globl HelloDsSel",
+	"HelloDsSel:",
+	"push ebp",
+	"mov bp, sp",
+	"push ebx",
+	"push esi",
+	"push edi",
+	"mov ss, word ptr [__w16_ss16]",
+	"movzx esp, sp",
+	"cmp word ptr [__w16dyn_HelloDsSel+2], 0",
+	"jz 5f",
+	".byte 0xff, 0x1e",
+	".word __w16dyn_HelloDsSel",
+	"jmp 6f",
+	"5:",
+	"add sp, 0",
+	"mov ax, 0xffff",
+	"xor dx, dx",
+	"6:",
+	".byte 0x66, 0xe8",
+	".long w16_sync_alias - . - 4",
+	"mov ss, word ptr [__w16_ss32]",
+	"movzx esp, sp",
+	"push ds",
+	"pop es",
+	"movzx eax, ax",
+	"pop edi",
+	"pop esi",
+	"pop ebx",
+	"pop ebp",
+	".byte 0x66, 0xc3",
+);
+
 unsafe extern "C" {
 	pub fn GetVersion() -> u32;
 	pub fn GlobalAlloc(a0: u32, a1: u32) -> u32;
@@ -2310,7 +3028,10 @@ unsafe extern "C" {
 	pub fn Yield() -> u32;
 	pub fn WaitEvent(a0: u32) -> u32;
 	pub fn GetCurrentPDB() -> u32;
+	pub fn GetModuleUsage(a0: u32) -> u32;
 	pub fn GetModuleFileName(a0: u32, a1: u32, a2: u32) -> u32;
+	pub fn GetModuleHandle(a0: u32) -> u32;
+	pub fn GetProcAddress(a0: u32, a1: u32) -> u32;
 	pub fn FindResource(a0: u32, a1: u32, a2: u32) -> u32;
 	pub fn LoadResource(a0: u32, a1: u32) -> u32;
 	pub fn LockResource(a0: u32) -> u32;
@@ -2327,11 +3048,18 @@ unsafe extern "C" {
 	pub fn OutputDebugString(a0: u32) -> u32;
 	pub fn GetPrivateProfileString(a0: u32, a1: u32, a2: u32, a3: u32, a4: u32, a5: u32) -> u32;
 	pub fn WritePrivateProfileString(a0: u32, a1: u32, a2: u32, a3: u32) -> u32;
+	pub fn LoadLibrary(a0: u32) -> u32;
+	pub fn FreeLibrary(a0: u32) -> u32;
 	pub fn SetErrorMode(a0: u32) -> u32;
 	pub fn GetWinFlags() -> u32;
+	pub fn WinExec(a0: u32, a1: u32) -> u32;
+	pub fn GetFreeSpace(a0: u32) -> u32;
+	pub fn AllocSelector(a0: u32) -> u32;
+	pub fn FreeSelector(a0: u32) -> u32;
 	pub fn MessageBox(a0: u32, a1: u32, a2: u32, a3: u32) -> u32;
 	pub fn InitApp(a0: u32) -> u32;
 	pub fn PostQuitMessage(a0: u32) -> u32;
+	pub fn GetTickCount() -> u32;
 	pub fn ExitWindows(a0: u32, a1: u32) -> u32;
 	pub fn SetFocus(a0: u32) -> u32;
 	pub fn GetClientRect(a0: u32, a1: u32) -> u32;
@@ -2368,4 +3096,85 @@ unsafe extern "C" {
 	pub fn SetBkMode(a0: u32, a1: u32) -> u32;
 	pub fn TextOut(a0: u32, a1: u32, a2: u32, a3: u32, a4: u32) -> u32;
 	pub fn GetStockObject(a0: u32) -> u32;
+	pub fn HelloInfo(a0: u32) -> u32;
+	static mut __w16dyn_HelloInfo: u32;
+	pub fn HelloAdd(a0: u32, a1: u32) -> u32;
+	static mut __w16dyn_HelloAdd: u32;
+	pub fn HelloFillFar(a0: u32, a1: u32, a2: u32) -> u32;
+	static mut __w16dyn_HelloFillFar: u32;
+	pub fn HelloPoison() -> u32;
+	static mut __w16dyn_HelloPoison: u32;
+	pub fn HelloCounter() -> u32;
+	static mut __w16dyn_HelloCounter: u32;
+	pub fn HelloProbe(a0: u32) -> u32;
+	static mut __w16dyn_HelloProbe: u32;
+	pub fn HelloEspWatch(a0: u32) -> u32;
+	static mut __w16dyn_HelloEspWatch: u32;
+	pub fn HelloCross(a0: u32, a1: u32) -> u32;
+	static mut __w16dyn_HelloCross: u32;
+	pub fn HelloDsSel() -> u32;
+	static mut __w16dyn_HelloDsSel: u32;
+}
+
+/// The ordinal of `HelloInfo` in the library `HELLODLL`.
+pub const HelloInfo_ORDINAL: u32 = 2;
+/// Points the stub `HelloInfo` at the far address `GetProcAddress` returned; 0 unbinds it.
+pub fn bind_HelloInfo(far: u32) {
+	unsafe { core::ptr::addr_of_mut!(__w16dyn_HelloInfo).write_volatile(far) }
+}
+
+/// The ordinal of `HelloAdd` in the library `HELLODLL`.
+pub const HelloAdd_ORDINAL: u32 = 3;
+/// Points the stub `HelloAdd` at the far address `GetProcAddress` returned; 0 unbinds it.
+pub fn bind_HelloAdd(far: u32) {
+	unsafe { core::ptr::addr_of_mut!(__w16dyn_HelloAdd).write_volatile(far) }
+}
+
+/// The ordinal of `HelloFillFar` in the library `HELLODLL`.
+pub const HelloFillFar_ORDINAL: u32 = 4;
+/// Points the stub `HelloFillFar` at the far address `GetProcAddress` returned; 0 unbinds it.
+pub fn bind_HelloFillFar(far: u32) {
+	unsafe { core::ptr::addr_of_mut!(__w16dyn_HelloFillFar).write_volatile(far) }
+}
+
+/// The ordinal of `HelloPoison` in the library `HELLODLL`.
+pub const HelloPoison_ORDINAL: u32 = 5;
+/// Points the stub `HelloPoison` at the far address `GetProcAddress` returned; 0 unbinds it.
+pub fn bind_HelloPoison(far: u32) {
+	unsafe { core::ptr::addr_of_mut!(__w16dyn_HelloPoison).write_volatile(far) }
+}
+
+/// The ordinal of `HelloCounter` in the library `HELLODLL`.
+pub const HelloCounter_ORDINAL: u32 = 6;
+/// Points the stub `HelloCounter` at the far address `GetProcAddress` returned; 0 unbinds it.
+pub fn bind_HelloCounter(far: u32) {
+	unsafe { core::ptr::addr_of_mut!(__w16dyn_HelloCounter).write_volatile(far) }
+}
+
+/// The ordinal of `HelloProbe` in the library `HELLODLL`.
+pub const HelloProbe_ORDINAL: u32 = 7;
+/// Points the stub `HelloProbe` at the far address `GetProcAddress` returned; 0 unbinds it.
+pub fn bind_HelloProbe(far: u32) {
+	unsafe { core::ptr::addr_of_mut!(__w16dyn_HelloProbe).write_volatile(far) }
+}
+
+/// The ordinal of `HelloEspWatch` in the library `HELLODLL`.
+pub const HelloEspWatch_ORDINAL: u32 = 8;
+/// Points the stub `HelloEspWatch` at the far address `GetProcAddress` returned; 0 unbinds it.
+pub fn bind_HelloEspWatch(far: u32) {
+	unsafe { core::ptr::addr_of_mut!(__w16dyn_HelloEspWatch).write_volatile(far) }
+}
+
+/// The ordinal of `HelloCross` in the library `HELLODLL`.
+pub const HelloCross_ORDINAL: u32 = 9;
+/// Points the stub `HelloCross` at the far address `GetProcAddress` returned; 0 unbinds it.
+pub fn bind_HelloCross(far: u32) {
+	unsafe { core::ptr::addr_of_mut!(__w16dyn_HelloCross).write_volatile(far) }
+}
+
+/// The ordinal of `HelloDsSel` in the library `HELLODLL`.
+pub const HelloDsSel_ORDINAL: u32 = 10;
+/// Points the stub `HelloDsSel` at the far address `GetProcAddress` returned; 0 unbinds it.
+pub fn bind_HelloDsSel(far: u32) {
+	unsafe { core::ptr::addr_of_mut!(__w16dyn_HelloDsSel).write_volatile(far) }
 }

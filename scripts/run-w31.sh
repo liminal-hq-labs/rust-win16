@@ -6,12 +6,15 @@
 
 set -euo pipefail
 
-# Usage: W31_TREE=DIR scripts/run-w31.sh [--runs N] [--log NAME] PROGRAM.EXE [ARGUMENTS...]
+# Usage: W31_TREE=DIR scripts/run-w31.sh [--runs N] [--log NAME] [--with FILE]... [--system FILE]... PROGRAM.EXE [ARGUMENTS...]
 #
 # W31_TREE is an installed Windows 3.11 tree (a folder holding WINDOWS/), which you supply: the repository ships no Microsoft files.
 # Each run copies the tree to a scratch directory, mounts the copy as C: and a folder holding the program as D:, and starts
 # `win /3 D:\PROGRAM.EXE ARGUMENTS`. The program should end Windows when it is done (BIGSEG.EXE does with `/exit`); a run that has not
 # ended after WAIT seconds (default 150) is stopped. The run passes when D:\<NAME> (default BIGSEG.LOG) has a `RESULT: PASS` line.
+# `--with FILE` puts a file beside the program on D: (a library the program loads, say) and `--system FILE` puts one in
+# C:\WINDOWS\SYSTEM of the run's copy of the tree; either may be given more than once. W31_NAME (default w31run) prefixes the DOSBox-X
+# container's name, so that runs started by different people do not clash.
 # Each run's log is kept as run-N.log in OUT (default a new temporary directory), and a run that had to be stopped leaves a screenshot,
 # run-N.png, which shows the fault box if there was one.
 #
@@ -21,10 +24,14 @@ set -euo pipefail
 
 runs=1
 logname=BIGSEG.LOG
+with_files=()
+system_files=()
 while [ $# -gt 0 ]; do
 	case "$1" in
 	--runs) runs="$2"; shift 2 ;;
 	--log) logname="$2"; shift 2 ;;
+	--with) with_files+=("$2"); shift 2 ;;
+	--system) system_files+=("$2"); shift 2 ;;
 	*) break ;;
 	esac
 done
@@ -36,7 +43,7 @@ wait_s="${WAIT:-150}"
 out="${OUT:-$(mktemp -d)}"
 mkdir -p "$out"
 work="$(mktemp -d)"
-name="w31run-$$"
+name="${W31_NAME:-w31run}-$$"
 cleanup() {
 	docker rm -f "$name" > /dev/null 2>&1 || true
 	rm -rf "$work"
@@ -59,6 +66,12 @@ for i in $(seq 1 "$runs"); do
 	mkdir -p "$work/d" "$work/conf"
 	cp -a --reflink=auto "$W31_TREE" "$work/c"
 	cp "$prog" "$work/d/$exe"
+	for extra in ${with_files[@]+"${with_files[@]}"}; do
+		cp "$extra" "$work/d/$(basename "$extra" | tr '[:lower:]' '[:upper:]')"
+	done
+	for extra in ${system_files[@]+"${system_files[@]}"}; do
+		cp "$extra" "$work/c/WINDOWS/SYSTEM/$(basename "$extra" | tr '[:lower:]' '[:upper:]')"
+	done
 	{
 		printf '%s\n' '[sdl]' 'output=surface' 'fullscreen=false' '[dosbox]' 'machine=svga_s3' 'memsize=32' '[cpu]' 'core=normal' 'cputype=pentium'
 		printf '%s\n' 'cycles=max' '[dos]' 'ems=false' 'xms=true' 'umb=true' '[autoexec]' '@echo off' 'mount c /c' 'mount d /d' 'c:'

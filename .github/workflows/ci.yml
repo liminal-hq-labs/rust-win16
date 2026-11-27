@@ -129,9 +129,14 @@ jobs:
         env:
           OUT_DIR: ${{ runner.temp }}/w16-out
         run: |
-          for exe in MSGBOX HELLO SETUP BIGSEG; do
+          for exe in MSGBOX HELLO SETUP BIGSEG DLLHOST; do
             file "$OUT_DIR/$exe.EXE" | tee /dev/stderr | grep -Eq 'NE (version [0-9]+ )?for MS Windows'
             python3 tools/ne_dump.py "$OUT_DIR/$exe.EXE" >/dev/null
             python3 tools/ne_check.py "$OUT_DIR/$exe.EXE"
+          done
+          for dll in HELLODLL HELLODLL2; do
+            file "$OUT_DIR/$dll.DLL" | tee /dev/stderr | grep -Eq 'NE (version [0-9]+ )?for MS Windows'
+            python3 tools/ne_dump.py "$OUT_DIR/$dll.DLL" >/dev/null
+            python3 tools/ne_check.py "$OUT_DIR/$dll.DLL"
           done
           python3 tools/ne_dump.py --json "$OUT_DIR/BIGSEG.EXE" | python3 -c 'import json, sys; n = json.load(sys.stdin)["header"]["nseg"]; sys.exit(0 if n > 2 else f"BIGSEG.EXE has {n} segments")'

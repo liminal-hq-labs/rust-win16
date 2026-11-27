@@ -19,7 +19,10 @@ KERNEL 25 GlobalCompact l l
 KERNEL 29 Yield - v
 KERNEL 30 WaitEvent w w
 KERNEL 37 GetCurrentPDB - w
+KERNEL 48 GetModuleUsage w w
 KERNEL 49 GetModuleFileName wpw w
+KERNEL 47 GetModuleHandle p w
+KERNEL 50 GetProcAddress wl l
 KERNEL 60 FindResource wll w
 KERNEL 61 LoadResource ww w
 KERNEL 62 LockResource w l
@@ -36,11 +39,18 @@ KERNEL 86 _lwrite_far wlw w
 KERNEL 115 OutputDebugString p v
 KERNEL 128 GetPrivateProfileString ppppwp w
 KERNEL 129 WritePrivateProfileString pppp w
+KERNEL 95 LoadLibrary p w
+KERNEL 96 FreeLibrary w v
 KERNEL 107 SetErrorMode w w
 KERNEL 132 GetWinFlags - l
+KERNEL 166 WinExec pw w
+KERNEL 169 GetFreeSpace w l
+KERNEL 175 AllocSelector w w
+KERNEL 176 FreeSelector w w
 USER 1 MessageBox wppw w
 USER 5 InitApp w w
 USER 6 PostQuitMessage w v
+USER 13 GetTickCount - l
 USER 7 ExitWindows lw w
 USER 22 SetFocus w w
 USER 33 GetClientRect wp v
@@ -77,3 +87,15 @@ USER 179 GetSystemMetrics w w
 GDI 2 SetBkMode ww w
 GDI 33 TextOut wwwpw w
 GDI 87 GetStockObject w w
+
+# Dynamic imports: `DYN LIBRARY ORDINAL Name ARGS RET`, calls into a library the program loads with LoadLibrary and binds with
+# bind_<Name>(GetProcAddress(...)). The ordinals are those of examples/hellodll/exports.json.
+DYN HELLODLL 2 HelloInfo p w
+DYN HELLODLL 3 HelloAdd ww l
+DYN HELLODLL 4 HelloFillFar lww w
+DYN HELLODLL 5 HelloPoison - w
+DYN HELLODLL 6 HelloCounter - l
+DYN HELLODLL 7 HelloProbe p w
+DYN HELLODLL 8 HelloEspWatch w w
+DYN HELLODLL 9 HelloCross ww l
+DYN HELLODLL 10 HelloDsSel - w
