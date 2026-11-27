@@ -67,7 +67,7 @@ To add a program, add a `[[bin]]` to `Cargo.toml`, add its name to the loop in `
 
 ## How the packer works
 
-`tools/ne_pack.py` takes the linked ELF and writes the NE file Windows loads: the DOS stub, the NE header, the code segments, one automatic data segment with its stack and heap, the relocation records, the entry table, the name tables and the resource table. The linker leaves every function in a section of its own with its relocations; the packer places them in segments (automatically, by a `.text.seg<N>` section name or by Rust path patterns in a small JSON file), recomputes every reference to code and sends calls between segments through veneers with far fixups. [docs/packer.md](docs/packer.md) walks through each piece.
+`tools/ne_pack.py` takes the linked ELF and writes the NE file Windows loads: the DOS stub, the NE header, the code segments, one automatic data segment with its stack and heap, the relocation records, the entry table, the name tables and the resource table. The linker leaves every function in a section of its own with its relocations; the packer places them in segments (automatically, by a `.text.seg<N>` section name or by Rust path patterns in a small JSON file), recomputes every reference to code and sends calls between segments through veneers with far fixups. With `--library` and a manifest of fixed export ordinals it writes a DLL instead (packer only so far). [docs/packer.md](docs/packer.md) walks through each piece.
 
 ## Limits
 

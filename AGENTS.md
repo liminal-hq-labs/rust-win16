@@ -126,9 +126,9 @@ README.md SPEC.md AGENTS.md CLAUDE.md LICENSE-APACHE LICENSE-MIT
 .editorconfig .markdownlint.jsonc .gitignore rustfmt.toml rust-toolchain.toml
 Cargo.toml Cargo.lock win16.json link.ld .cargo/config.toml
 src/           runtime crate: lib.rs, generated imports.rs, wizard.rs, probe.rs
-examples/      msgbox, hello, setup and bigseg, each with its resources or segments file
+examples/      msgbox, hello, setup and bigseg, each with its resources or segments file, and library (a DLL manifest)
 tools/         ne_pack.py, ne_dump.py, ne_check.py, ne_addr2sym.py, rust_demangle.py, gen_imports.py and imports.tbl
-tests/         packer, segment and stub generator tests
+tests/         packer, library, segment and stub generator tests (golden files in tests/golden)
 assets/        hero banner
 docs/          packer explainer and decisions
 scripts/       build, Windows 3.11 harness, header check, banner check and its Chromium text-fit harness

@@ -1,0 +1,12 @@
+{
+	"module": "TINY",
+	"description": "A hand-assembled test library",
+	"heap": 0,
+	"gaps": "allow",
+	"imports": ["KERNEL.GlobalAlloc", "KERNEL.GlobalLock", "KERNEL.GlobalUnlock", "KERNEL.GlobalFree"],
+	"exports": {
+		"WEP": 1,
+		"Answer": { "ordinal": 2, "words": 0 },
+		"ReadData": { "ordinal": 4, "words": 1 }
+	}
+}
